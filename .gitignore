@@ -1,0 +1,55 @@
+# ============================================================
+# Unity (생성물 — 커밋 제외)
+# ============================================================
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+
+# 에셋 .meta는 해당 에셋이 무시될 때만 함께 무시 (그 외엔 반드시 커밋)
+!/[Aa]ssets/**/*.meta
+
+# ============================================================
+# IDE / 빌드 부산물 (Unity가 재생성)
+# ============================================================
+.vs/
+.vsconfig
+.idea/
+*.csproj
+*.sln
+*.user
+*.unityproj
+*.suo
+*.tmp
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+*.booproj
+
+# 패키지/빌드 산출물
+*.apk
+*.aab
+*.unitypackage
+*.app
+crashlytics-build.properties
+
+# ============================================================
+# 프로젝트 고유
+# ============================================================
+# 오픈소스 참고 셰이더 — 로컬 학습용(각자 라이선스), 본 프로젝트 산출물 아님 (Docs/07)
+/OpenToonShaders/
+
+# Claude Code 로컬 설정
+/.claude/
+# /.claude/*
+# /.claude/settings.local.json
+
+# Codex 검증 임시 출력(혹시 Temp 밖에 생성될 경우 대비)
+/codex_*.txt

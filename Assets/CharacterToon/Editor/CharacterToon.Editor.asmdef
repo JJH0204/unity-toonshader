@@ -1,0 +1,18 @@
+{
+    "name": "CharacterToon.Editor",
+    "rootNamespace": "CharacterToon.Editor",
+    "references": [
+        "CharacterToon.Runtime"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
