@@ -77,7 +77,7 @@ namespace CharacterToon.Editor
             { "_ShadowOffsetScale",  new GUIContent("Shadow Border Offset","ILM G채널로 음영 진입 경계를 당기거나 미는 양.") },
             { "_ShadeFloor",         new GUIContent("Shadow Floor",        "최소 밝기 하한. 저조도에서 얼굴이 묻히지 않게 한다.") },
             { "_AmbientStrength",    new GUIContent("Ambient (SH)",        "환경광(Spherical Harmonics) 세기.") },
-            { "_AOStrength",         new GUIContent("SSAO Strength",       "화면공간 AO 영향도(0=무시, 1=URP 표준). URP 렌더러에 SSAO(ScreenSpaceAmbientOcclusion) 기능이 켜져 있어야 효과. 과하면 셀 음영이 뭉개질 수 있어 낮춘다.") },
+            { "_AOStrength",         new GUIContent("SSAO Strength",       "화면공간 AO 영향도(0=무시, 1=URP 표준). URP 렌더러에 SSAO(ScreenSpaceAmbientOcclusion) 기능이 켜져 있어야 효과. 과하면 셀 음영이 뭉개질 수 있어 낮춘다.\n\n※'필름그레인 같은 칙칙한 알갱이가 카메라 따라 움직임' 피드백의 원인: PC_Renderer의 SSAO가 Blue Noise(AOMethod=0)+BlurQuality=Low 라 화면공간 노이즈가 픽셀에 고정→표면 위로 기어다님(TAA 없음). 캐릭터에서 빼려면 이 값을 0. 화면 전체로 없애려면 PC_Renderer의 SSAO를 끄거나 BlurQuality를 올린다. (Mobile_Renderer엔 SSAO 없음=PC 경로 전용 증상)") },
             { "_UseILM",             new GUIContent("Use ILM Map",         "ILM 마스크 사용. 끄면 중립값(R0/G0.5/B0.5/A0)으로 동작(모든 ILM 효과 무효). 데이터 맵이므로 Linear 임포트.") },
             { "_ILMMap",             new GUIContent("ILM Map (RGBA)",      "4-in-1 마스크 패킹(실제 동작): R=MatCap 마스크 강도, G=음영경계 바이어스(0.5중립), B=툰 스페큘러 폭(PBR 시), A=외곽선 억제(1=억제). ※보조램프/내부선은 미구현. 정의=Docs/08.") },
             // 파라메트릭 1·2차 그림자 밴드 (결정 #17)
