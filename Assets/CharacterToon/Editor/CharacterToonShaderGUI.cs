@@ -27,6 +27,10 @@ namespace CharacterToon.Editor
         private const string ShaderModePrefKey = "CharacterToon.ShaderGUI.Mode";
         private const string FoldoutPrefKeyPrefix = "CharacterToon.ShaderGUI.Foldout.";
 
+        // Lit ↔ Unlit 전환 대상 셰이더(동일 CBUFFER 레이아웃 → 셰이더 교체 시 값/프리셋 보존).
+        private const string ShaderNameLit = "CharacterToon/Character";
+        private const string ShaderNameUnlit = "CharacterToon/Character Unlit";
+
         // 폴드아웃 영속화용 섹션 ID
         private const string SectionMain = "Main";
         private const string SectionNormal = "Normal";
@@ -43,6 +47,16 @@ namespace CharacterToon.Editor
         private const string SectionRendering = "Rendering";
 
         private enum ViewMode { Simple = 0, Advanced = 1 }
+
+        // 프로퍼티 단위 복사/붙여넣기 클립보드(인스펙터 인스턴스 간 공유 → static).
+        // MaterialProperty 객체는 OnGUI마다 재생성되어 메뉴 콜백 시점엔 stale 하므로,
+        // 클립보드/적용은 모두 "프로퍼티 이름 + 타입 + 원시값"으로 보관하고 Material API에 직접 작용한다.
+        private static bool _clipHas;
+        private static ShaderPropertyType _clipType;
+        private static float _clipFloat;
+        private static Vector4 _clipVector;          // Color/Vector 공용
+        private static Texture _clipTexture;
+        private static Vector4 _clipScaleOffset;     // 텍스처 ST (scale.xy, offset.xy)
 
         // lilToon 기준 영문 라벨 + 한글 툴팁(마우스 롤오버). 키 = 프로퍼티 식별자.
         private static readonly Dictionary<string, GUIContent> _labels = new Dictionary<string, GUIContent>
@@ -174,6 +188,9 @@ namespace CharacterToon.Editor
             // 헤더
             EditorGUILayout.LabelField("CharacterToon", EditorStyles.boldLabel);
 
+            // Lit ↔ Unlit 셰이딩 모드 전환(셰이더 교체, 값 보존)
+            DrawShadingModeBar(materialEditor);
+
             // 보기 모드 선택 (영속화)
             ViewMode currentMode = (ViewMode)EditorPrefs.GetInt(ShaderModePrefKey, (int)ViewMode.Simple);
             string[] modeLabels = { "Simple", "Advanced" };
@@ -186,6 +203,9 @@ namespace CharacterToon.Editor
 
             // 결정 #14 Phase 2: 프리셋 저장/불러오기 (머티리얼 프로퍼티+키워드 일괄)
             DrawPresetBar(materialEditor);
+
+            // 각 항목 우클릭 → 초기값 복원 / 복사 / 붙여넣기 (lilToon식 항목 단위 편집)
+            EditorGUILayout.LabelField("Tip: 각 항목 우클릭 → 초기값 복원 / 복사 / 붙여넣기", EditorStyles.miniLabel);
 
             // 2-3: 렌더링 모드(Opaque/Transparent) — 인스펙터 최상단. 변경 시 Blend/ZWrite/RenderQueue 설정.
             DrawSurfaceModeDropdown(materialEditor, properties);
@@ -316,6 +336,66 @@ namespace CharacterToon.Editor
                 m.SetFloat("_ZWrite", 1f);
                 m.SetOverrideTag("RenderType", "Opaque");
                 m.renderQueue = (int)RenderQueue.Geometry; // 2000
+            }
+        }
+
+        /// <summary>
+        /// Lit ↔ Unlit 셰이딩 모드 세그먼트 토글. 클릭 시 타깃 머티리얼의 셰이더를 교체한다.
+        /// 두 셰이더는 UnityPerMaterial CBUFFER 레이아웃이 동일하므로 셰이더만 바꿔도 프로퍼티 값/프리셋이 보존된다.
+        /// </summary>
+        private void DrawShadingModeBar(MaterialEditor materialEditor)
+        {
+            Material[] mats = ToMaterials(materialEditor.targets);
+            if (mats.Length == 0)
+                return;
+
+            // 현재 모드 판정(다중 선택이 섞여 있으면 mixed → 아무 것도 선택되지 않은 상태로 표시)
+            int mode = -1;
+            bool mixed = false;
+            foreach (Material m in mats)
+            {
+                int cur = (m.shader != null && m.shader.name == ShaderNameUnlit) ? 1 : 0;
+                if (mode == -1) mode = cur;
+                else if (mode != cur) mixed = true;
+            }
+            int selected = mixed ? -1 : mode;
+            int clicked;
+
+            using (new EditorGUILayout.HorizontalScope(EditorStyles.helpBox))
+            {
+                EditorGUILayout.LabelField(
+                    new GUIContent("Shading", "Lit=빛 계산 셰이딩 / Unlit=알베도 평면 출력(MatCap·Rim·Emission 등 뷰 기반만). 전환해도 값·프리셋은 유지됩니다(동일 CBUFFER)."),
+                    GUILayout.Width(56));
+                clicked = GUILayout.Toolbar(selected, new[] { "Lit", "Unlit" });
+            }
+
+            if (clicked >= 0 && clicked != selected)
+            {
+                SwitchShadingMode(mats, clicked);
+                GUIUtility.ExitGUI();   // 셰이더 교체 후 현 properties 배열은 무효 → 현 OnGUI 중단, 깨끗이 재레이아웃
+            }
+        }
+
+        /// <summary>타깃 머티리얼들의 셰이더를 Lit(0)/Unlit(1)로 교체. 값 보존 + 값→키워드 재동기화.</summary>
+        private static void SwitchShadingMode(Material[] mats, int mode)
+        {
+            string targetName = mode == 1 ? ShaderNameUnlit : ShaderNameLit;
+            Shader target = Shader.Find(targetName);
+            if (target == null)
+            {
+                EditorUtility.DisplayDialog("CharacterToon",
+                    "셰이더를 찾을 수 없습니다: " + targetName + "\n(셰이더 파일이 프로젝트에 임포트됐는지 확인하세요.)", "확인");
+                return;
+            }
+
+            foreach (Material m in mats)
+            {
+                if (m.shader == target)
+                    continue;
+                Undo.RecordObject(m, "Switch Shading Mode");
+                m.shader = target;                          // 동일 CBUFFER → 동일 이름 프로퍼티 값 보존
+                MaterialEditor.ApplyMaterialPropertyDrawers(m);  // [Toggle(_USE_*)]/[KeywordEnum] 값→키워드 재동기화
+                EditorUtility.SetDirty(m);
             }
         }
 
@@ -499,10 +579,188 @@ namespace CharacterToon.Editor
             if (prop == null)
                 return;
 
+            // 프로퍼티 전체 영역을 감싸 우클릭 컨텍스트 메뉴(초기값/복사/붙여넣기) 히트 영역을 얻는다.
+            Rect rowRect = EditorGUILayout.BeginVertical();
             if (_labels.TryGetValue(propertyName, out GUIContent label))
                 materialEditor.ShaderProperty(prop, label);
             else
                 materialEditor.ShaderProperty(prop, prop.displayName);
+            EditorGUILayout.EndVertical();
+
+            HandlePropertyContextMenu(rowRect, materialEditor, propertyName);
+        }
+
+        // =========================================================
+        // 항목 단위: 초기값 복원 / 복사 / 붙여넣기 (우클릭 컨텍스트 메뉴)
+        // =========================================================
+
+        /// <summary>프로퍼티 행 우클릭 시 컨텍스트 메뉴를 띄운다. 콜백은 stale 방지를 위해 이름만 캡처해 Material에 직접 작용.</summary>
+        private void HandlePropertyContextMenu(Rect rect, MaterialEditor materialEditor, string propertyName)
+        {
+            Event e = Event.current;
+            if (e.type != EventType.ContextClick || !rect.Contains(e.mousePosition))
+                return;
+
+            Material[] mats = ToMaterials(materialEditor.targets);
+            if (mats.Length == 0)
+                return;
+
+            var menu = new GenericMenu();
+            menu.AddItem(new GUIContent("Reset to Default / 초기값으로"), false, () => ResetPropertyToDefault(mats, propertyName));
+            menu.AddSeparator(string.Empty);
+            menu.AddItem(new GUIContent("Copy / 복사"), false, () => CopyProperty(mats[0], propertyName));
+            if (CanPaste(mats[0], propertyName))
+                menu.AddItem(new GUIContent("Paste / 붙여넣기"), false, () => PasteProperty(mats, propertyName));
+            else
+                menu.AddDisabledItem(new GUIContent("Paste / 붙여넣기"));
+            menu.ShowAsContext();
+            e.Use();
+        }
+
+        /// <summary>셰이더 Properties 블록에 선언된 기본값으로 되돌린다(텍스처는 None + ST 1,1,0,0). 키워드 재동기화 포함.</summary>
+        private static void ResetPropertyToDefault(Material[] mats, string name)
+        {
+            foreach (Material m in mats)
+            {
+                Shader shader = m.shader;
+                int idx = shader.FindPropertyIndex(name);
+                if (idx < 0)
+                    continue;
+
+                Undo.RecordObject(m, "Reset Property to Default");
+                switch (shader.GetPropertyType(idx))
+                {
+                    case ShaderPropertyType.Float:
+                    case ShaderPropertyType.Range:
+                        m.SetFloat(name, shader.GetPropertyDefaultFloatValue(idx));
+                        break;
+                    case ShaderPropertyType.Int:
+                        m.SetInteger(name, shader.GetPropertyDefaultIntValue(idx));
+                        break;
+                    case ShaderPropertyType.Color:
+                        m.SetColor(name, shader.GetPropertyDefaultVectorValue(idx));
+                        break;
+                    case ShaderPropertyType.Vector:
+                        m.SetVector(name, shader.GetPropertyDefaultVectorValue(idx));
+                        break;
+                    case ShaderPropertyType.Texture:
+                        m.SetTexture(name, null);
+                        m.SetTextureScale(name, Vector2.one);
+                        m.SetTextureOffset(name, Vector2.zero);
+                        break;
+                }
+                // [Toggle(_USE_*)]/[KeywordEnum] 등 값→키워드 재동기화(프리셋 로드와 동일).
+                MaterialEditor.ApplyMaterialPropertyDrawers(m);
+                EditorUtility.SetDirty(m);
+            }
+        }
+
+        /// <summary>첫 타깃의 한 프로퍼티 값을 클립보드로 복사.</summary>
+        private static void CopyProperty(Material src, string name)
+        {
+            Shader shader = src.shader;
+            int idx = shader.FindPropertyIndex(name);
+            if (idx < 0)
+                return;
+
+            _clipType = shader.GetPropertyType(idx);
+            switch (_clipType)
+            {
+                case ShaderPropertyType.Float:
+                case ShaderPropertyType.Range:
+                    _clipFloat = src.GetFloat(name);
+                    break;
+                case ShaderPropertyType.Int:
+                    _clipFloat = src.GetInteger(name);
+                    break;
+                case ShaderPropertyType.Color:
+                    _clipVector = src.GetColor(name);
+                    break;
+                case ShaderPropertyType.Vector:
+                    _clipVector = src.GetVector(name);
+                    break;
+                case ShaderPropertyType.Texture:
+                    _clipTexture = src.GetTexture(name);
+                    Vector2 s = src.GetTextureScale(name);
+                    Vector2 o = src.GetTextureOffset(name);
+                    _clipScaleOffset = new Vector4(s.x, s.y, o.x, o.y);
+                    break;
+            }
+            _clipHas = true;
+        }
+
+        /// <summary>클립보드가 있고, 대상 프로퍼티 타입이 호환될 때만 붙여넣기 허용.</summary>
+        private static bool CanPaste(Material m, string name)
+        {
+            if (!_clipHas)
+                return false;
+            int idx = m.shader.FindPropertyIndex(name);
+            if (idx < 0)
+                return false;
+            return TypeCompatible(m.shader.GetPropertyType(idx), _clipType);
+        }
+
+        /// <summary>숫자류(Float/Range/Int)는 상호 호환, 그 외는 동일 타입만 호환.</summary>
+        private static bool TypeCompatible(ShaderPropertyType a, ShaderPropertyType b)
+        {
+            if (IsNumeric(a) && IsNumeric(b))
+                return true;
+            return a == b;
+        }
+
+        private static bool IsNumeric(ShaderPropertyType t)
+            => t == ShaderPropertyType.Float || t == ShaderPropertyType.Range || t == ShaderPropertyType.Int;
+
+        /// <summary>클립보드 값을 모든 타깃에 붙여넣는다. 키워드 재동기화 포함.</summary>
+        private static void PasteProperty(Material[] mats, string name)
+        {
+            if (!_clipHas)
+                return;
+
+            foreach (Material m in mats)
+            {
+                int idx = m.shader.FindPropertyIndex(name);
+                if (idx < 0)
+                    continue;
+                ShaderPropertyType dstType = m.shader.GetPropertyType(idx);
+                if (!TypeCompatible(dstType, _clipType))
+                    continue;
+
+                Undo.RecordObject(m, "Paste Property");
+                switch (dstType)
+                {
+                    case ShaderPropertyType.Float:
+                    case ShaderPropertyType.Range:
+                        m.SetFloat(name, _clipFloat);
+                        break;
+                    case ShaderPropertyType.Int:
+                        m.SetInteger(name, Mathf.RoundToInt(_clipFloat));
+                        break;
+                    case ShaderPropertyType.Color:
+                        m.SetColor(name, _clipVector);
+                        break;
+                    case ShaderPropertyType.Vector:
+                        m.SetVector(name, _clipVector);
+                        break;
+                    case ShaderPropertyType.Texture:
+                        m.SetTexture(name, _clipTexture);
+                        m.SetTextureScale(name, new Vector2(_clipScaleOffset.x, _clipScaleOffset.y));
+                        m.SetTextureOffset(name, new Vector2(_clipScaleOffset.z, _clipScaleOffset.w));
+                        break;
+                }
+                MaterialEditor.ApplyMaterialPropertyDrawers(m);
+                EditorUtility.SetDirty(m);
+            }
+        }
+
+        /// <summary>MaterialEditor.targets(Object[])를 Material[]로 추린다.</summary>
+        private static Material[] ToMaterials(Object[] targets)
+        {
+            var list = new List<Material>(targets.Length);
+            foreach (Object t in targets)
+                if (t is Material m)
+                    list.Add(m);
+            return list.ToArray();
         }
     }
 }

@@ -54,7 +54,6 @@ namespace CharacterToon.Editor
 
         private ResolutionOption _resolutionOption = ResolutionOption.Auto;
         private string _outputPath = "";
-        private string _outputFileName = "";
 
         private Material _targetMaterial;
         private bool _assignToMaterial;

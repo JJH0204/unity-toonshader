@@ -75,7 +75,9 @@ half3 ApplyNormalMapDerivative(half3 N, float3 positionWS, float2 uv, half3 norm
 
 // L3(갭): 부가광(point/spot/추가 디렉셔널) 1개를 셀 단계화해 가산 기여를 계산.
 //   half-Lambert → 1차 그림자 경계(border/blur)로 셀 스텝, 거리·그림자 감쇠 곱. 가산광이므로 그림자 영역엔 0(어둡게 안 함).
-//   주의: Light 타입은 URP Lighting.hlsl 제공. 이 파일을 include 하는 ForwardToon 패스는 Lighting.hlsl을 먼저 include한다.
+//   주의: Light 타입은 URP Lighting.hlsl 제공. Lit ForwardToon은 Lighting.hlsl을 먼저 include하므로 정의됨.
+//   Unlit 패스는 Lighting.hlsl을 include하지 않아 Light 타입이 없으므로 가드로 제외(부가광은 Lit 전용).
+#ifdef UNIVERSAL_LIGHTING_INCLUDED
 half3 ShadeAdditionalToon(Light light, half3 N, half3 albedo, half border, half blur)
 {
     half nl  = saturate(dot(N, light.direction) * 0.5h + 0.5h);   // half-Lambert
@@ -83,5 +85,6 @@ half3 ShadeAdditionalToon(Light light, half3 N, half3 albedo, half border, half 
     half atten = light.distanceAttenuation * light.shadowAttenuation;
     return albedo * light.color * (atten * lit);
 }
+#endif
 
 #endif // CHARACTER_TOON_LIGHTING_INCLUDED
