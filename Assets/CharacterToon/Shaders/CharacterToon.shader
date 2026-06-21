@@ -432,6 +432,11 @@ Shader "CharacterToon/Character"
                 // 그림자 최소 밝기 하한(완전 검정 방지). 그림자 톤은 _ShadeFloor 위에서 유지된다.
                 shaded = max(shaded, baseColor.rgb * _ShadeFloor);
 
+                // L1+: 캐릭터 '추가' 키라이트(2순위 이하)를 순서대로 겹쳐 가산(셀 스텝). 1순위는 위 cel/SDF가 담당.
+                //   _CharacterExtraLightCount=0 이면 분기 스킵(비용 ~0). 색에는 매니저가 세기를 이미 곱해 둠.
+                if (_CharacterExtraLightCount > 0.5h)
+                    shaded += AccumulateCharacterExtraLights(N, baseColor.rgb, _ShadowBorder, max(_ShadowBlur, 1e-4h)) * aoDirect;
+
                 // L3(갭): 부가광(point/spot, Forward+ 클러스터 포함) 셀셰이딩 — 동적 라이팅 퀄리티.
                 //   키라이트(메인/캐릭터)에 더해 씬 추가 광원을 셀 단계화해 가산(가산광이라 그림자 영역은 안 어둡게).
                 //   _USE_ADD_LIGHTS off거나 _ADDITIONAL_LIGHTS 미설정이면 컴파일 제거(비용 0). 그림자는 _ADDITIONAL_LIGHT_SHADOWS.

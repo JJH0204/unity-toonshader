@@ -87,4 +87,27 @@ half3 ShadeAdditionalToon(Light light, half3 N, half3 albedo, half border, half 
 }
 #endif
 
+// L1+: 캐릭터 '추가' 키라이트(2순위 이하)의 가산 셀 기여. 감쇠 없는 방향광이라 URP Light 타입 불필요.
+//   1순위 키라이트는 위 cel/SDF 경로가 담당, 추가분만 같은 1차 밴드 경계로 셀 스텝 후 가산.
+half3 ShadeCharacterExtraToon(half3 dirWS, half3 color, half3 N, half3 albedo, half border, half blur)
+{
+    half nl  = saturate(dot(N, dirWS) * 0.5h + 0.5h);             // half-Lambert
+    half lit = smoothstep(border - blur, border + blur, nl);
+    return albedo * color * lit;
+}
+
+// L1+: _CharacterExtraLight* 배열을 순회하며 가산 셀 기여를 합산.
+half3 AccumulateCharacterExtraLights(half3 N, half3 albedo, half border, half blur)
+{
+    half3 sum = (half3)0.0h;
+    int count = (int)_CharacterExtraLightCount;
+    [loop] for (int i = 0; i < CHARACTER_EXTRA_LIGHT_MAX; i++)
+    {
+        if (i >= count) break;
+        half3 dir = (half3)normalize(_CharacterExtraLightDir[i].xyz);
+        sum += ShadeCharacterExtraToon(dir, (half3)_CharacterExtraLightColor[i].rgb, N, albedo, border, blur);
+    }
+    return sum;
+}
+
 #endif // CHARACTER_TOON_LIGHTING_INCLUDED

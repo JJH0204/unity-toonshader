@@ -34,37 +34,45 @@ namespace CharacterToon
         private void OnDisable() { CharacterToonManager.Unregister(this); }
         private void LateUpdate(){ CharacterToonManager.PushActive(); }
 
-        /// <summary>매니저가 호출 — 이 라이트의 리그를 전달된 글로벌 프로퍼티 ID로 push.</summary>
-        public void ApplyGlobals(int idLightDir, int idLightColor)
+        /// <summary>
+        /// 이 라이트의 리그(방향/색)를 산출해 반환. 매니저가 정렬 후 1순위는 전역, 2순위 이하는 배열에 담는다.
+        ///   dir   : xyz=방향(정규화), w=1=방향 유효 / w=0=방향 없음
+        ///   color : rgb=색(linear), a=세기 (a&lt;=0 이면 색 소스 없음 → 1순위면 메인 라이트 색 폴백)
+        ///   return: 명시 방향(키라이트/Transform)이 있으면 true. (2순위 가산광은 false면 스킵)
+        /// </summary>
+        public bool GetRig(out Vector4 dir, out Vector4 color)
         {
-            // 방향 소스 결정. 키 라이트도 없고 Transform 방향도 안 쓰면 기존 동작(메인 라이트 폴백) 보존.
-            Vector3 dir;
-            if (_keyLight != null)            dir = -_keyLight.transform.forward;
-            else if (_useTransformAsDirection) dir = transform.forward;
+            bool hasDir;
+            Vector3 d;
+            if (_keyLight != null)             { d = -_keyLight.transform.forward; hasDir = true; }
+            else if (_useTransformAsDirection) { d = transform.forward;            hasDir = true; }
+            else                               { d = Vector3.up;                   hasDir = false; }
+
+            if (hasDir)
+            {
+                d = d.sqrMagnitude > 1e-8f ? d.normalized : Vector3.up;
+                dir = new Vector4(d.x, d.y, d.z, 1f);
+            }
             else
             {
-                Shader.SetGlobalVector(idLightDir, new Vector4(0f, 1f, 0f, 0f));  // w=0 → 메인 라이트 폴백
-                Shader.SetGlobalVector(idLightColor, Vector4.zero);
-                return;
+                dir = new Vector4(0f, 1f, 0f, 0f);   // w=0 → (1순위) 셰이더 메인 라이트 방향 폴백
             }
-
-            dir = dir.sqrMagnitude > 1e-8f ? dir.normalized : Vector3.up;
-            Shader.SetGlobalVector(idLightDir, new Vector4(dir.x, dir.y, dir.z, 1f));
 
             if (_overrideColor)
             {
                 Color c = _color.linear;
-                Shader.SetGlobalVector(idLightColor, new Vector4(c.r, c.g, c.b, Mathf.Max(_intensity, 0f)));
+                color = new Vector4(c.r, c.g, c.b, Mathf.Max(_intensity, 0f));
             }
             else if (_keyLight != null)
             {
                 Color c = _keyLight.color.linear;
-                Shader.SetGlobalVector(idLightColor, new Vector4(c.r, c.g, c.b, _keyLight.intensity));
+                color = new Vector4(c.r, c.g, c.b, _keyLight.intensity);
             }
             else
             {
-                Shader.SetGlobalVector(idLightColor, Vector4.zero); // a=0 → 셰이더가 메인 라이트 색 사용
+                color = Vector4.zero;   // a=0 → (1순위) 셰이더 메인 라이트 색 폴백
             }
+            return hasDir;
         }
     }
 }

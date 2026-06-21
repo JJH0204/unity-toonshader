@@ -171,6 +171,13 @@ float4 _CharacterLightColor;   // L1: rgb=색(linear), a=세기. a<=0 이면 메
 float4 _FaceForwardWS;
 float4 _FaceRightWS;
 
+// L1+: 여러 캐릭터 라이트를 '순서대로 겹쳐' 적용 — 1순위는 위 _CharacterLightDirWS(cel/SDF 구동),
+//   2순위부터 아래 배열에 결정적 순서로 담겨 가산 셀 기여로 합산된다(최대 3개 = 총 4개).
+#define CHARACTER_EXTRA_LIGHT_MAX 3
+float4 _CharacterExtraLightDir[CHARACTER_EXTRA_LIGHT_MAX];    // xyz=방향(정규화), w=1=유효
+float4 _CharacterExtraLightColor[CHARACTER_EXTRA_LIGHT_MAX];  // rgb=색(linear)*세기
+float  _CharacterExtraLightCount;                            // 0..3
+
 #endif // CHARACTER_TOON_INPUT_INCLUDED
 
 
