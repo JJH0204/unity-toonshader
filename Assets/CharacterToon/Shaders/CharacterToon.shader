@@ -335,8 +335,14 @@ Shader "CharacterToon/Character"
                     half sdfRight = SAMPLE_TEXTURE2D(_FaceSDF, sampler_FaceSDF, uvFlip).r;
                     half sdf = lerp(sdfLeft, sdfRight, step(0.0, RdotL));
                     half coverage = saturate((-FdotL + 1.0) * 0.5);
-                    // 결정 #15: 단일 고품질 — 항상 smoothstep(소프트 경계). (구 LOBBY_HQ step 분기 제거)
-                    half faceLit = smoothstep(coverage - _SDFSoftness, coverage + _SDFSoftness, sdf);
+                    // 결정 #15: 단일 고품질 — 항상 소프트 경계.
+                    // SDF 경계 폭 = 아티스트 소프트니스(값 공간, 매끈) + fwidth(sdf) AA 바닥(더하기, 곱하기 아님).
+                    //  - 소프트니스 0: 폭이 fwidth만 남아 ~1px AA → 가파른 영역의 계단/픽셀 노이즈 제거.
+                    //  - 소프트니스 ↑: 폭이 매끈한 값 공간 상수에 지배, fwidth 기여는 무시됨 → 깔끔하게 부드러워짐.
+                    //  ※ 직전엔 _SDFSoftness*fwidth로 '곱'했더니, fwidth의 2x2 quad 양자화 잡음이
+                    //    높은 블러에서 폭 전체로 증폭되어 그림자가 얼룩덜룩(블록 얼룩)해짐 → '더하기'로 분리.
+                    half halfBand = _SDFSoftness + fwidth(sdf) * 0.5h;
+                    half faceLit = smoothstep(coverage - halfBand, coverage + halfBand, sdf);
                     
                     // Hair shadow mask: sample mask at input.uv and darken faceLit
                     #if defined(_USE_HAIR_SHADOW)

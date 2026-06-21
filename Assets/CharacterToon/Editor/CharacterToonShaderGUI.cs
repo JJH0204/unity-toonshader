@@ -134,7 +134,7 @@ namespace CharacterToon.Editor
             { "_EmissionColor",      new GUIContent("Emission Color (HDR)","발광 색·세기(HDR). 맵에 곱해진다.") },
             // Face Shadow (SDF)
             { "_FaceSDF",            new GUIContent("Face SDF",            "얼굴 SDF(거리장). 좌우 플립 샘플링으로 빛 방향별 얼굴 음영을 만든다. (마스크 타입=SDF일 때 사용)") },
-            { "_SDFSoftness",        new GUIContent("SDF Blur",            "SDF 음영 경계의 부드러움(smoothstep 폭).") },
+            { "_SDFSoftness",        new GUIContent("SDF Blur",            "SDF 음영 경계의 부드러움. 0이어도 fwidth 기반 ~1px AA가 항상 적용돼 경계 픽셀 노이즈가 없고, 올릴수록 매끈하게 부드러워진다(높여도 얼룩 없음). 폭은 SDF 값 공간 기준 ±값.") },
             { "_UseHairShadow",      new GUIContent("Use Hair Shadow",     "얼굴 위에 드리우는 머리카락 그림자(마스크) 사용. 끄면 컴파일 제거.") },
             { "_HairShadowMask",     new GUIContent("Hair Shadow Mask",    "얼굴 위에 드리우는 머리카락 그림자 마스크.") },
             { "_HairShadowStrength", new GUIContent("Hair Shadow Strength","머리카락 그림자 세기.") },
