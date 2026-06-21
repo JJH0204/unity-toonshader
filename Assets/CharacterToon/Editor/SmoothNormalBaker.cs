@@ -8,8 +8,10 @@ namespace CharacterToon.Editor
     /// <summary>
     /// Smooth Outline Normal Baker (M3, T3-3).
     /// 
-    /// Bakes smoothed vertex normals (averaged from welded positions) into a mesh's TANGENT channel
-    /// without modifying the source FBX. Smoothed normals survive skinning on SkinnedMeshRenderer.
+    /// Bakes smoothed vertex normals into a mesh's TANGENT channel without modifying the source FBX.
+    /// Welds vertices by a position TOLERANCE (not exact float equality) and accumulates ANGLE-WEIGHTED
+    /// face normals, so seams/hard-edges/float-jitter no longer split the outline → outline connects
+    /// smoothly. Smoothed normals survive skinning on SkinnedMeshRenderer.
     /// 
     /// Workflow:
     /// 1. Select a GameObject with MeshFilter/SkinnedMeshRenderer, or select a Mesh directly.
@@ -23,6 +25,7 @@ namespace CharacterToon.Editor
     {
         private Mesh _sourceMesh;
         private Vector2 _scrollPos;
+        private float _weldTolerance = 0.0001f;   // 같은 위치로 간주할 거리 허용치(월드 유닛)
 
         [MenuItem("Window/CharacterToon/Smooth Normal Baker")]
         public static void ShowWindow()
@@ -56,21 +59,29 @@ namespace CharacterToon.Editor
             EditorGUILayout.Space();
 
             EditorGUILayout.HelpBox(
-                "Bakes smoothed vertex normals (welded by position) into a new mesh's TANGENT channel.\n\n" +
-                "Decision #3: Smooth outline normals stored in tangent.xyz so they survive SkinnedMeshRenderer skinning.\n\n" +
-                "Output: saves a new mesh asset (_SmoothOutline) with identical vertices/triangles but tangent = smoothed normal.",
+                "권장: FBX 임포트 시 자동 베이크가 동작합니다 (SmoothNormalModelPostprocessor).\n" +
+                "  → Assets/Sample/FBX/ 하위 모델은 임포트만 해도 TANGENT에 스무스 노멀이 자동 기록됩니다.\n" +
+                "  → 일괄 적용: Window > CharacterToon > Reimport Models (Auto Smooth Normals).\n\n" +
+                "이 창은 임의의 단일 Mesh를 수동으로 굽고 별도 _SmoothOutline 에셋으로 저장할 때만 사용하세요.\n" +
+                "Decision #3: 스무스 노멀은 tangent.xyz 에 저장(스키닝에서 살아남음).",
                 MessageType.Info);
 
             EditorGUILayout.Space();
 
             _sourceMesh = EditorGUILayout.ObjectField("Source Mesh", _sourceMesh, typeof(Mesh), false) as Mesh;
 
+            _weldTolerance = EditorGUILayout.FloatField(
+                new GUIContent("Weld Tolerance",
+                    "같은 위치로 간주해 노멀을 합칠 거리 허용치(월드 유닛). 너무 작으면 시접/부동소수 미세차에서 노멀이 안 합쳐져 외곽선이 끊기고, 너무 크면 떨어진 정점까지 뭉쳐 뭉개진다. 보통 0.0001~0.001."),
+                _weldTolerance);
+            if (_weldTolerance < 1e-6f) _weldTolerance = 1e-6f;
+
             EditorGUILayout.Space();
 
             if (GUILayout.Button("Bake Smooth Normals", GUILayout.Height(40)))
             {
                 if (_sourceMesh != null)
-                    BakeSmoothNormalsForMesh(_sourceMesh);
+                    BakeSmoothNormalsForMesh(_sourceMesh, _weldTolerance);
                 else
                     EditorUtility.DisplayDialog("Error", "No mesh selected.", "OK");
             }
@@ -85,7 +96,7 @@ namespace CharacterToon.Editor
             GUILayout.EndScrollView();
         }
 
-        private static void BakeSmoothNormalsForMesh(Mesh source)
+        private static void BakeSmoothNormalsForMesh(Mesh source, float weldTolerance = 0.0001f)
         {
             if (source == null)
             {
@@ -104,29 +115,10 @@ namespace CharacterToon.Editor
             Color[] sourceColors = source.colors;
             BoneWeight[] sourceBoneWeights = source.boneWeights;
             Matrix4x4[] sourceBindPoses = source.bindposes;
-            int[] sourceTriangles = source.triangles;
-            int[] sourceTriangleIndices32 = source.triangles;
-            
-            // Compute smoothed normals by welding vertices at same position
-            Dictionary<Vector3, List<int>> positionToIndices = new Dictionary<Vector3, List<int>>();
-            for (int i = 0; i < sourceVertices.Length; i++)
-            {
-                Vector3 pos = sourceVertices[i];
-                if (!positionToIndices.ContainsKey(pos))
-                    positionToIndices[pos] = new List<int>();
-                positionToIndices[pos].Add(i);
-            }
 
-            Vector3[] smoothedNormals = new Vector3[sourceVertices.Length];
-            foreach (var kvp in positionToIndices)
-            {
-                Vector3 summedNormal = Vector3.zero;
-                foreach (int idx in kvp.Value)
-                    summedNormal += sourceNormals[idx];
-                Vector3 smoothedNormal = summedNormal.normalized;
-                foreach (int idx in kvp.Value)
-                    smoothedNormals[idx] = smoothedNormal;
-            }
+            // 스무스 노멀 계산 — 공용 유틸 사용(자동 임포트 베이크와 동일 알고리즘).
+            //  허용치 용접 + 각도가중 면노멀 → 시접에서도 끊김 없이 이어지는 외곽선.
+            Vector3[] smoothedNormals = SmoothNormalUtil.ComputeSmoothNormals(source, weldTolerance);
 
             // Create baked mesh
             Mesh bakedMesh = new Mesh();

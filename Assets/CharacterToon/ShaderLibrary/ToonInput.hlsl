@@ -15,6 +15,7 @@ TEXTURE2D(_BumpMap);        SAMPLER(sampler_BumpMap);
 TEXTURE2D(_ILMMap);         SAMPLER(sampler_ILMMap);
 TEXTURE2D(_RampMap);        SAMPLER(sampler_RampMap);
 TEXTURE2D(_FaceSDF);        SAMPLER(sampler_FaceSDF);
+TEXTURE2D(_FaceSDFMask);    SAMPLER(sampler_FaceSDFMask);    // SDF를 적용할 영역 마스크(R). 기본 white=얼굴 전역.
 TEXTURE2D(_HairShadowMask); SAMPLER(sampler_HairShadowMask);
 TEXTURE2D(_ShadowMaskTex);  SAMPLER(sampler_ShadowMaskTex);  // 2-1: 일반 그림자 억제 마스크(R)
 TEXTURE2D(_StencilMask);    SAMPLER(sampler_StencilMask);    // 3-2: 스텐실 영역 마스크(R, 앞머리 투과)
@@ -88,6 +89,8 @@ CBUFFER_START(UnityPerMaterial)
     half   _OutlineDepthOffset;
     half   _OutlineDistanceFade;   // 0=화면일정(기존), 1=원거리 얇아짐
     half   _OutlineFadeStart;      // 페이드 시작 거리
+    half   _OutlineFixWidth;       // lilToon _OutlineFixWidth: 카메라(머리) 근접 시 폭 축소(극단 클로즈업 과두께/불균일 방지)
+    half   _OutlineVertexColorWidth; // lilToon _OutlineVertexR2Width: 0=끔 / 1=정점컬러 R / 2=정점컬러 A 로 폭 변조
 
     // SDF / 로비 HQ
     half   _SDFSoftness;
@@ -96,7 +99,8 @@ CBUFFER_START(UnityPerMaterial)
     half   _UseMatCapMask;    // 결정 #16: MatCap 마스크 분기 float(키워드 아님 — 변형 절감, _USE_MATCAP 내부 lerp)
     half   _MatCapNormalStrength; // 4-5: 노말이 MatCap UV에 미치는 영향도(0=지오메트릭 매끈, 1=노말맵 섭동). MatCap/2 공통.
     half4  _MatCapColor;      // 베이스 컬러 틴트(MatCap 샘플에 곱). 기본 흰색=무영향.
-    half   _MatCapBlur;       // 0=선명, 1=흐림. 밉 바이어스로 소프트닝(텍스처에 밉맵 필요).
+    half   _MatCapBlur;       // 0=선명, 1=흐림. 밉 바이어스로 소프트닝(텍스처에 밉맵 필요). 실사용상 강도 조절로도 활용.
+    half   _MatCapLightInfluence; // 요구: MatCap에 씬 라이트(색·그림자)가 적용될 강도. 0=발광형(빛 무관), 1=라이트 따라감. (Lit 전용)
     // 2-5: 두 번째 MatCap (별도 슬롯/강도/마스크/블렌드)
     half   _MatCap2Strength;
     half   _UseMatCap2;       // [Toggle(_USE_MATCAP2)] backing float

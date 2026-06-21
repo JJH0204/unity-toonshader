@@ -66,19 +66,30 @@ Shader "CharacterToon/Character"
         [Toggle(_USE_ADD_LIGHTS)] _UseAddLights ("Use Additional Lights", Float) = 1
         _AdditionalLightStrength("Additional Light Strength", Range(0,2)) = 1.0
 
+        // ── Outline (lilToon 외곽선 방식 충실 이식) ──
         [Header(Outline)]
         [Toggle(_USE_OUTLINE)] _UseOutline ("Use Outline", Float) = 1
-        _OutlineColor("Outline Color", Color) = (0,0,0,1)
-        _OutlineMap("Outline Color Map", 2D) = "white" {}
-        _OutlineMask("Outline Mask (R, suppress)", 2D) = "white" {}
-        _OutlineWidth("Outline Width", Range(0,5)) = 1.0
+        [HDR] _OutlineColor("Outline Color", Color) = (0,0,0,1)
+        _OutlineMap("Outline Tex", 2D) = "white" {}
+        // lilToon _OutlineWidth: 내부적으로 ×0.01(오브젝트/월드 단위). 거리에 따라 화면상 얇아짐.
+        _OutlineWidth("Outline Width", Range(0,1)) = 0.08
+        // lilToon _OutlineWidthMask: R=폭 가중(0=해당 부위 외곽선 제거). 기본 white=영향 없음.
+        _OutlineMask("Outline Width Mask (R)", 2D) = "white" {}
+        // lilToon _OutlineFixWidth: 카메라(머리)에 매우 가까울 때 폭 축소(클로즈업 과두께/불균일 방지). 0=끔.
+        _OutlineFixWidth("Outline Fix Width (near cam)", Range(0,1)) = 0.5
+        // lilToon _OutlineVertexR2Width: 정점 컬러로 폭 변조. 0=끔 / 1=R / 2=A.
+        [Enum(Off,0,VertexColor R,1,VertexColor A,2)] _OutlineVertexColorWidth("Vertex Color Width", Float) = 0
+        // lilToon _OutlineZBias: 시선 방향으로 카메라에서 밀기(월드 단위). 기본 0. z-fighting/겹침 시에만 ↑.
+        _OutlineDepthOffset("Outline Z Bias", Float) = 0.0
+        // (확장) lilToon엔 없는 원거리 페이드. 0이면 영향 없음.
         _OutlineDistanceFade("Outline Distance Fade", Range(0,1)) = 0.0
         _OutlineFadeStart("Outline Fade Start Dist", Range(0.1,50)) = 5.0
-        _OutlineDepthOffset("Outline Depth Offset", Range(0,1)) = 0.0
 
         [Header(Face SDF)]
         _FaceSDF("Face SDF", 2D) = "white" {}
         _SDFSoftness("SDF Softness", Range(0,0.5)) = 0.05
+        // SDF를 적용할 영역(R). 흰=SDF 경계, 검=일반 밴드 음영. 기본 white=얼굴 전역 SDF.
+        _FaceSDFMask("Face SDF Mask (R)", 2D) = "white" {}
         [Toggle(_USE_HAIR_SHADOW)] _UseHairShadow ("Use Hair Shadow (on Face)", Float) = 0
         _HairShadowMask("Hair Shadow Mask", 2D) = "white" {}
         _HairShadowStrength("Hair Shadow Strength", Range(0,1)) = 1.0
@@ -90,6 +101,8 @@ Shader "CharacterToon/Character"
         _MatCapStrength("MatCap Strength", Range(0,4)) = 1.0
         [HDR] _MatCapColor("MatCap Color", Color) = (1,1,1,1)
         _MatCapBlur("MatCap Blur", Range(0,1)) = 0.0
+        // 요구: MatCap에 씬 라이트(색·그림자)가 적용될 강도. 0=발광형(빛 무관, 기존), 1=라이트 따라감.
+        _MatCapLightInfluence("MatCap Light Influence", Range(0,1)) = 0.0
         // 4-5: 노말이 MatCap UV에 미치는 영향도(0=지오메트릭 매끈/시점 흔들림 없음, 1=노말 섭동 디테일). MatCap/2 공통.
         _MatCapNormalStrength("MatCap Normal Influence", Range(0,1)) = 1.0
         [Toggle] _UseMatCapMask ("Use Separate MatCap Mask", Float) = 0
@@ -317,8 +330,12 @@ Shader "CharacterToon/Character"
                 half lightVal = saturate(halfLambert + shadowBias);  // 0=그림자, 1=빛
 
                 // M2: Face SDF flip sampling (decision #5: SDF black/white, UV symmetry, RdotL flip direction provisional)
+                // 합치기(요구): SDF는 lightVal을 덮어쓰지 않고 faceLit/sdfApply로 분리해 들고 나간다.
+                //   아래 '단일 그림자 단계'에서 sdfApply(= SDF enable × Face SDF Mask)로 밴드 음영과 SDF 경계를 병합.
+                half faceLit  = 1.0h;   // SDF 라이트값(0=그림자,1=빛). 폴백=빛.
+                half sdfApply = 0.0h;   // 0=밴드만, 1=SDF가 경계 지배.
                 #if defined(_PART_FACE)
-                // 2-1: 마스크 타입 = SDF(0) 일 때만 얼굴 SDF 플립샘플. Strength(1) 이면 위 half-Lambert lightVal 그대로 사용.
+                // 2-1: 마스크 타입 = SDF(0) 일 때만 얼굴 SDF 플립샘플. Strength(1) 이면 일반 half-Lambert 밴드만.
                 if (_ShadowMaskType < 0.5h)
                 {
                     // 라이트/얼굴 벡터 모두 안전 정규화 — 글로벌 미설정(0)이어도 기본값으로 동작.
@@ -335,56 +352,63 @@ Shader "CharacterToon/Character"
                     half sdfRight = SAMPLE_TEXTURE2D(_FaceSDF, sampler_FaceSDF, uvFlip).r;
                     half sdf = lerp(sdfLeft, sdfRight, step(0.0, RdotL));
                     half coverage = saturate((-FdotL + 1.0) * 0.5);
-                    // 결정 #15: 단일 고품질 — 항상 소프트 경계.
-                    // SDF 경계 폭 = 아티스트 소프트니스(값 공간, 매끈) + fwidth(sdf) AA 바닥(더하기, 곱하기 아님).
-                    //  - 소프트니스 0: 폭이 fwidth만 남아 ~1px AA → 가파른 영역의 계단/픽셀 노이즈 제거.
-                    //  - 소프트니스 ↑: 폭이 매끈한 값 공간 상수에 지배, fwidth 기여는 무시됨 → 깔끔하게 부드러워짐.
-                    //  ※ 직전엔 _SDFSoftness*fwidth로 '곱'했더니, fwidth의 2x2 quad 양자화 잡음이
-                    //    높은 블러에서 폭 전체로 증폭되어 그림자가 얼룩덜룩(블록 얼룩)해짐 → '더하기'로 분리.
-                    half halfBand = _SDFSoftness + fwidth(sdf) * 0.5h;
-                    half faceLit = smoothstep(coverage - halfBand, coverage + halfBand, sdf);
-                    
-                    // Hair shadow mask: sample mask at input.uv and darken faceLit
+                    // 경계 AA: smoothstep(큐빅) 대신 화면공간 미분 기반 '선형' 램프(lilToon lilTooning 방식).
+                    //   smoothstep은 중앙 기울기가 평균의 1.5배 → 폭=1px여도 유효 전이가 ~0.66px로 좁아져
+                    //   낮은 블러에서 서브픽셀 에일리어싱(노이즈)이 남았다. 선형은 기울기가 일정해 1px 전이가 깔끔.
+                    //   전이 폭 = 2*소프트니스(값공간) + fwidth(sdf)*1.5(AA 바닥). 소프트니스 0이어도 fwidth로 항상 AA.
+                    half aa    = fwidth(sdf) * 1.5h;                 // 1.5 = 서브픽셀 노이즈 안전 마진
+                    half width = max(_SDFSoftness * 2.0h + aa, 1e-4h);
+                    faceLit = saturate((sdf - coverage) / width + 0.5h);
+
+                    // Hair shadow mask: faceLit 어둡게
                     #if defined(_USE_HAIR_SHADOW)
                         half hairMask = SAMPLE_TEXTURE2D(_HairShadowMask, sampler_HairShadowMask, input.uv).r;
                         faceLit *= lerp(1.0h, hairMask, _HairShadowStrength);
                     #endif
-                    
+
+                    // SDF 적용 마스크(R). 기본 "white" → 미등록 시 얼굴 전역 SDF(기존 동작).
+                    //   흰=SDF가 경계 지배 / 검=일반 밴드 음영 / 중간=블렌드. "SDF를 어디에 적용할지" 제어.
+                    sdfApply = SAMPLE_TEXTURE2D(_FaceSDFMask, sampler_FaceSDFMask, input.uv).r;
+
                     #if defined(_DEBUG_FACELIT)
-                        // 진단: faceLit을 흑백으로 직접 출력. 라이트 회전 시
-                        //  - 경계가 공간적으로 이동 -> SDF 정상 (룩 문제는 ramp/base)
-                        //  - 얼굴 전체가 한꺼번에 흰<->검 -> SDF 텍스처가 균일(.r 변화 없음)
-                        //  - 전혀 안 변함 -> Part가 Face가 아니거나 다른 머티리얼
                         return half4(faceLit, faceLit, faceLit, 1.0h);
                     #endif
-
-                    lightVal = faceLit;
                 }
                 #endif
 
-                // 결정 #17: 받는 캐스트 그림자를 라이팅 값에 반영(세기 _ReceiveShadowStrength)
-                lightVal *= lerp(1.0h, mainLight.shadowAttenuation, _ReceiveShadowStrength);
+                // 결정 #17: 받는 캐스트 그림자 — 일반(lightVal)·SDF(faceLit) 라이트값에 동일 적용.
+                half rcvShadow = lerp(1.0h, mainLight.shadowAttenuation, _ReceiveShadowStrength);
+                lightVal *= rcvShadow;
+                faceLit  *= rcvShadow;
 
-                // 2-1: 일반 그림자 마스크 — R<1 영역은 그림자를 억제(빛 쪽으로 끌어올림).
-                // 눈동자·눈 안쪽 흰자 등 만화적 특성상 음영을 안 지게 하고 싶은 영역 제어용.
-                // 중립 폴백 = white(R=1) → no-op. 마스크/SDF/일반음영 어느 경로든 lightVal에 일괄 적용.
+                // 2-1: 일반 그림자 억제 마스크 — R<1 영역은 그림자를 억제(빛 쪽으로). 양쪽 라이트값에 일괄.
+                // 눈동자·눈 안쪽 흰자 등 만화적으로 음영을 안 지게 하고 싶은 영역 제어용. 중립 폴백 white=no-op.
                 half shadowMaskTex = SAMPLE_TEXTURE2D(_ShadowMaskTex, sampler_ShadowMaskTex, input.uv).r;
                 lightVal = lerp(1.0h, lightVal, shadowMaskTex);
+                faceLit  = lerp(1.0h, faceLit,  shadowMaskTex);
 
-                // 음영 적용 — 기본: 파라메트릭 1·2차 밴드(모델러 요구), 옵션(_USE_RAMP): RampMap LUT
+                // ── 단일 그림자 단계: 밴드 음영 ⊕ SDF 경계를 sdfApply로 병합 ──
+                // 기본: 파라메트릭 1·2차 밴드(모델러 요구), 옵션(_USE_RAMP): RampMap LUT
                 half3 shadedAlbedo;
                 half shadeMask;   // 0=빛, 1=그림자. 아래 앰비언트 변조에 사용(셀 대비 보존).
             #if defined(_USE_RAMP)
-                half3 ramp = SAMPLE_TEXTURE2D(_RampMap, sampler_RampMap, half2(lightVal, _RampRow)).rgb;
+                // SDF 영역은 faceLit 경계, 그 외 lightVal → 합쳐 램프 입력.
+                half rampVal = lerp(lightVal, faceLit, sdfApply);
+                half3 ramp = SAMPLE_TEXTURE2D(_RampMap, sampler_RampMap, half2(rampVal, _RampRow)).rgb;
                 shadedAlbedo = baseColor.rgb * ramp;
-                shadeMask = 1.0h - saturate(lightVal);
+                shadeMask = 1.0h - saturate(rampVal);
             #else
-                // 1·2차 그림자 팩터(1=그림자,0=빛): border 위치 + blur 폭, _ShadowStrength=전체 적용 범위
                 // blur=0(하드 그림자) 시 smoothstep 동일 edge → 0나눗셈 NaN 방지 (Codex 지적)
                 half blur1 = max(_ShadowBlur,    1e-4h);
                 half blur2 = max(_Shadow2ndBlur, 1e-4h);
-                half shadow1 = (1.0h - smoothstep(_ShadowBorder    - blur1, _ShadowBorder    + blur1, lightVal)) * _ShadowStrength;
-                half shadow2 = (1.0h - smoothstep(_Shadow2ndBorder - blur2, _Shadow2ndBorder + blur2, lightVal)) * _ShadowStrength;
+                // 밴드 음영(half-Lambert 기반) 1·2차: border 위치 + blur 폭, _ShadowStrength=전체 적용 범위
+                half shadow1Band = (1.0h - smoothstep(_ShadowBorder    - blur1, _ShadowBorder    + blur1, lightVal)) * _ShadowStrength;
+                half shadow2Band = (1.0h - smoothstep(_Shadow2ndBorder - blur2, _Shadow2ndBorder + blur2, lightVal)) * _ShadowStrength;
+                // SDF 음영: faceLit이 곧 경계 → 밴드 재임계화 없음(= SDF 범위 밖 번짐의 원인 제거). 1차만.
+                half shadowSDF = (1.0h - faceLit) * _ShadowStrength;
+                // 병합: SDF 지배 영역(sdfApply)은 1차=SDF, 2차 밴드는 억제(SDF 밖으로 번지던 2차선 차단).
+                half shadow1 = lerp(shadow1Band, shadowSDF, sdfApply);
+                half shadow2 = shadow2Band * (1.0h - sdfApply);
                 shadedAlbedo = baseColor.rgb;
                 shadedAlbedo = lerp(shadedAlbedo, baseColor.rgb * _ShadowColor.rgb,    shadow1); // 1차 그림자 색
                 shadedAlbedo = lerp(shadedAlbedo, baseColor.rgb * _Shadow2ndColor.rgb, shadow2); // 2차(심부) 그림자 색
@@ -458,6 +482,12 @@ Shader "CharacterToon/Character"
                 }
             #endif
 
+                // 요구: MatCap에 빛이 적용될 강도. 0=가산/발광형(빛 무관, 기존), 1=씬 라이트(색·그림자) 따라감.
+                //   블러(밉 바이어스)는 의도외지만 강도 조절로 활용 가치가 있어 그대로 둔다. 빛 적용은 별도 다이얼.
+                #if defined(_USE_MATCAP) || defined(_USE_MATCAP2)
+                half3 mcLight = lerp((half3)1.0h, lightColor * lightVal, _MatCapLightInfluence);
+                #endif
+
                 // M4(T4-1) + WP-C: MatCap (specular/reflection, 가산=발광형 블렌드 — 요구 #3)
                 #if defined(_USE_MATCAP)
                 if (hqAmount > 0.0h)   // S2: 원거리면 MatCap 샘플/연산 스킵 + 페이드
@@ -479,7 +509,7 @@ Shader "CharacterToon/Character"
                     matcapBase = ilm.r;
                 #endif
                     half matcapMask = lerp(matcapBase, maskTex, _UseMatCapMask);
-                    shaded += matcap * matcapMask * _MatCapStrength * hqAmount;
+                    shaded += matcap * matcapMask * _MatCapStrength * mcLight * hqAmount;
                 }
                 #endif
 
@@ -499,7 +529,7 @@ Shader "CharacterToon/Character"
                 #endif
                     half matcap2Mask = lerp(matcap2Base, mask2Tex, _UseMatCap2Mask);
                     if (_MatCap2Blend < 0.5h)
-                        shaded += matcap2 * matcap2Mask * _MatCap2Strength * hqAmount;                              // Add(가산형)
+                        shaded += matcap2 * matcap2Mask * _MatCap2Strength * mcLight * hqAmount;                   // Add(가산형, 빛 적용 강도 반영)
                     else
                         shaded = lerp(shaded, shaded * matcap2, saturate(matcap2Mask * _MatCap2Strength) * hqAmount); // Multiply(음영/AO형)
                 }
@@ -625,6 +655,7 @@ Shader "CharacterToon/Character"
                 float4 positionOS : POSITION;
                 float3 normalOS   : NORMAL;
                 float4 tangentOS  : TANGENT;
+                float4 color      : COLOR;       // lilToon _OutlineVertexR2Width(버텍스 컬러 폭)용
                 float2 uv         : TEXCOORD0;
             };
 
@@ -645,38 +676,50 @@ Shader "CharacterToon/Character"
             #endif
                 o.uv = input.uv;
 
-                // T3-1/T3-2: Use smooth normal from TANGENT.xyz (decision #3), with fallback to normalOS
+                // ============================================================
+                // lilToon lilGetOutlineWidth / lilCalcOutlinePosition 충실 이식
+                //   width = _OutlineWidth*0.01 (오브젝트/월드 단위, 거리에 따라 화면상 얇아짐)
+                //           × WidthMask.r × VertexColor × FixWidth
+                //   positionWS += smoothNormal * width;  (인버티드 헐)
+                //   positionWS -= viewDir * ZBias;       (시선 방향 깊이 바이어스, 기본 0)
+                // ※ 외곽선 노멀은 베이크된 스무스 노멀(TANGENT.xyz, 결정 #3) 사용. 없으면 normalOS 폴백.
+                // ============================================================
                 float3 smoothNormalOS = input.tangentOS.xyz;
-                if (length(smoothNormalOS) < 1e-4)
+                // 스무스 노멀 유효성 검사(끊김 방어): 베이크 안 된 메시는 tangent가 '진짜 탄젠트'(노멀과 ~수직)라
+                //   외곽선이 엉뚱한 방향으로 부풀어 끊긴다. 길이 0이거나 노멀과 정렬이 낮으면 normalOS로 폴백.
+                float tlen = length(smoothNormalOS);
+                if (tlen < 1e-4 || dot(smoothNormalOS / max(tlen, 1e-5), input.normalOS) < 0.3)
                     smoothNormalOS = input.normalOS;
 
                 float3 positionWS = TransformObjectToWorld(input.positionOS.xyz);
                 float3 normalWS   = TransformObjectToWorldNormal(smoothNormalOS);
-                float4 positionCS = TransformWorldToHClip(positionWS);
 
-                // T3-5: ILM alpha suppresses outline locally (A channel, keyword _USE_ILM)
-                float suppressionMask = 1.0;
+                // 폭(lilToon lilGetOutlineWidth): 0.01 = lilToon 중립 상수(오브젝트 단위).
+                float width = _OutlineWidth * 0.01;
+                // 폭 마스크 R (lilToon _OutlineWidthMask). 0=해당 부위 외곽선 제거. 기본 white=영향 없음.
+                width *= SAMPLE_TEXTURE2D_LOD(_OutlineMask, sampler_OutlineMask, input.uv, 0).r;
             #if defined(_USE_ILM)
-                float4 ilm = SAMPLE_TEXTURE2D_LOD(_ILMMap, sampler_ILMMap, input.uv, 0);
-                suppressionMask = 1.0 - ilm.a;
+                // ILM.a 외곽선 억제(우리 기능 유지) — 폭에 곱해 동일하게 동작.
+                width *= 1.0 - SAMPLE_TEXTURE2D_LOD(_ILMMap, sampler_ILMMap, input.uv, 0).a;
             #endif
-                // WP-E(요구 #6): 전용 아웃라인 마스크 R=폭 가중(0=해당 부위 외곽선 제거). 기본 white=영향 없음.
-                suppressionMask *= SAMPLE_TEXTURE2D_LOD(_OutlineMask, sampler_OutlineMask, input.uv, 0).r;
+                // 버텍스 컬러 폭 (lilToon _OutlineVertexR2Width): 0=끔 / 1=color.R / 2=color.A
+                if (_OutlineVertexColorWidth > 1.5h)      width *= input.color.a;
+                else if (_OutlineVertexColorWidth > 0.5h) width *= input.color.r;
 
-                // T3-4: Decision #6 FINAL — screen-space thickness stable across distance, FOV, and non-uniform scale
-                // Formula: widthWS = _OutlineWidth * 0.01 * positionCS.w / UNITY_MATRIX_P._m11
-                //   - positionCS.w scales with distance (constant thickness vs distance)
-                //   - / UNITY_MATRIX_P._m11 divides out FOV projection scaling (cot(fov/2))
-                //   - TransformObjectToWorldNormal already handles non-uniform scale (inverse-transpose)
-                //   Neutral constant 0.01 and normalization tuned so _OutlineWidth=1 ≈ 1-3px typical lobby view
-                float fovScale = UNITY_MATRIX_P._m11;  // cot(fov/2); divide to remove FOV scaling
-                // WP-E(요구 #7): 거리 굵기 페이드. fade=0이면 화면일정(기존). fade>0이면 FadeStart 너머에서
-                //   폭이 얇아짐(원거리 가늘게). saturate로 근거리는 일정하게 유지.
-                float distFade = lerp(1.0, saturate(_OutlineFadeStart / max(positionCS.w, 1e-3)), _OutlineDistanceFade);
-                float widthWS = _OutlineWidth * 0.01 * positionCS.w / fovScale * distFade;
+                // 카메라(머리) 방향/거리 — FixWidth · 거리페이드 · ZBias 공통.
+                float3 toCam   = _WorldSpaceCameraPos - positionWS;
+                float  camDist = length(toCam);
+                // lilToon _OutlineFixWidth: 카메라 매우 가까울 때(거리<1) 폭 축소(과두께/불균일 방지).
+                width *= lerp(1.0, saturate(camDist), _OutlineFixWidth);
+                // (확장) 원거리 페이드 — lilToon엔 없는 우리 옵션. _OutlineDistanceFade=0 이면 영향 없음.
+                width *= lerp(1.0, saturate(_OutlineFadeStart / max(camDist, 1e-3)), _OutlineDistanceFade);
 
-                // T3-6: _OutlineWidth = 0 fully collapses outline (LOD strategy: material preset width=0)
-                positionWS += normalize(normalWS) * widthWS * suppressionMask;
+                // 인버티드 헐: 스무스 노멀 방향으로 확장 (_OutlineWidth=0 이면 폭 0 → 외곽선 소멸)
+                positionWS += normalize(normalWS) * width;
+
+                // lilToon _OutlineZBias: 시선 방향으로 카메라에서 밀기(기본 0). 본체와 z-fighting/겹침 시에만 ↑.
+                float3 viewDirWS = (camDist > 1e-5) ? toCam / camDist : float3(0, 0, 0);
+                positionWS -= viewDirWS * _OutlineDepthOffset;
 
                 o.positionCS = TransformWorldToHClip(positionWS);
                 o.fogFactor = (half)ComputeFogFactor(o.positionCS.z);

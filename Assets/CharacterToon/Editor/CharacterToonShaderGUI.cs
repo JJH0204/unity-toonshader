@@ -89,7 +89,7 @@ namespace CharacterToon.Editor
             { "_Shadow2ndBlur",      new GUIContent("Shadow Blur 2nd",     "2차 그림자 경계의 부드러움.") },
             { "_ShadowStrength",     new GUIContent("Shadow Strength",     "그림자 전체 적용 강도/범위. 0이면 그림자 없음.") },
             { "_ReceiveShadowStrength",new GUIContent("Receive Cast Shadow","받는 캐스트 그림자(메인 라이트 섀도)가 음영을 어둡게 하는 정도. 운용: 얼굴 OFF(0)/바디 ON(1).") },
-            { "_ShadowMaskType",     new GUIContent("Shadow Mask Type",    "음영 마스크 방식. SDF=얼굴 거리장 플립샘플(얼굴 전용), Strength=일반 half-Lambert 음영. 얼굴이 아니면 항상 Strength로 동작.") },
+            { "_ShadowMaskType",     new GUIContent("Face SDF Mode",       "얼굴 SDF 사용 여부(마스터). SDF=거리장 플립샘플 경계를 그림자 밴드와 합쳐 사용, Strength=SDF 끄고 일반 half-Lambert 밴드만. 얼굴이 아니면 항상 밴드만. SDF를 '어디에' 적용할지는 Face SDF Mask로 조절.") },
             { "_ShadowMaskTex",      new GUIContent("Shadow Mask (R)",     "일반 그림자 억제 마스크(R채널). 0인 영역은 그림자가 안 진다(눈동자·눈 흰자 등). 미할당(white)=전체 적용.") },
             { "_UseRamp",            new GUIContent("Use Ramp LUT",        "켜면 파라메트릭 밴드 대신 RampMap LUT로 음영을 계산(고급/특수 톤).") },
             // Rim Light
@@ -110,13 +110,15 @@ namespace CharacterToon.Editor
             { "_AdditionalLightStrength",new GUIContent("Additional Light Strength","부가광 가산 세기. 과발광 시 낮춘다.") },
             // Outline
             { "_UseOutline",         new GUIContent("Use Outline",         "외곽선(인버티드 헐) 패스 사용. 끄면 외곽선 패스가 정점 단계에서 클립되어 그려지지 않는다.") },
-            { "_OutlineColor",       new GUIContent("Outline Color",       "외곽선 색(외곽선 컬러맵에 곱해진다).") },
-            { "_OutlineMap",         new GUIContent("Outline Color Map",   "외곽선 색 텍스처(요구 #6). 기본 white=Outline Color 그대로.") },
-            { "_OutlineMask",        new GUIContent("Outline Mask (R)",    "외곽선 전용 마스크(요구 #6). R=폭 가중, 0이면 해당 부위 외곽선 제거.") },
-            { "_OutlineWidth",       new GUIContent("Outline Width",       "외곽선 두께. 0이면 비활성. 기본은 거리/FOV 무관 화면상 두께 일정.") },
-            { "_OutlineDistanceFade",new GUIContent("Distance Fade",       "원거리 굵기 감쇠(요구 #7). 0=화면일정, 1=멀수록 얇게.") },
-            { "_OutlineFadeStart",   new GUIContent("Fade Start Dist",     "거리 페이드 시작 거리. 이 거리 너머부터 외곽선이 얇아진다.") },
-            { "_OutlineDepthOffset", new GUIContent("Outline Depth Offset","외곽선 깊이 오프셋(겹침/클리핑 방지).") },
+            { "_OutlineColor",       new GUIContent("Outline Color",       "외곽선 색(Outline Tex에 곱해진다). HDR.") },
+            { "_OutlineMap",         new GUIContent("Outline Tex",         "lilToon _OutlineTex. 외곽선 색 텍스처. 기본 white=Outline Color 그대로.") },
+            { "_OutlineMask",        new GUIContent("Outline Width Mask (R)","lilToon _OutlineWidthMask. R=폭 가중, 0이면 해당 부위 외곽선 제거. 기본 white=영향 없음.") },
+            { "_OutlineWidth",       new GUIContent("Outline Width",       "lilToon _OutlineWidth. 내부적으로 ×0.01(오브젝트/월드 단위)이라 거리에 따라 화면상 얇아진다(거리감). 0=외곽선 없음. lilToon 기본 0.08.") },
+            { "_OutlineFixWidth",    new GUIContent("Fix Width (near cam)", "lilToon _OutlineFixWidth. 카메라(머리)에 매우 가까울 때(거리<1) 외곽선 폭을 줄여 극단 클로즈업에서 과하게 두껍거나 불균일해지는 것을 방지. 0=끔(항상 일정), 0.5=권장(lilToon 기본).") },
+            { "_OutlineVertexColorWidth", new GUIContent("Vertex Color Width","lilToon _OutlineVertexR2Width. 정점 컬러로 외곽선 폭을 변조. Off=끔 / VertexColor R / VertexColor A. 메시 정점 색이 있어야 효과(부위별 두께 조절).") },
+            { "_OutlineDepthOffset", new GUIContent("Outline Z Bias",      "lilToon _OutlineZBias. 외곽선을 시선 방향으로 카메라에서 미는 양(월드 단위). 기본 0(밀지 않음 — Cull Front+스무스노멀로 깔끔). 외곽선이 본체와 z-fighting/겹쳐 보이면 작은 값(예 0.001~0.01)으로만 ↑.") },
+            { "_OutlineDistanceFade",new GUIContent("Distance Fade",       "(확장, lilToon엔 없음) 원거리 굵기 추가 감쇠. 0=영향 없음, 1=멀수록 더 얇게.") },
+            { "_OutlineFadeStart",   new GUIContent("Fade Start Dist",     "거리 페이드 기준 거리(카메라 거리). 이 거리 너머부터 더 얇아진다.") },
             // PBR (WP-D)
             // 4-1: 단일 통합 툰 스페큘러 모델(별도 URP Specular 워크플로 아님). 컨트롤 역할 명확화.
             //   Tint/Step = 하이라이트 스타일(색/셀 경계), Metallic/Smoothness = 재질(반사 틴트/날카로움+환경반사).
@@ -133,8 +135,9 @@ namespace CharacterToon.Editor
             { "_EmissionMap",        new GUIContent("Emission Map",        "발광 마스크/색 맵. 데이터이므로 선형(linear) 임포트.") },
             { "_EmissionColor",      new GUIContent("Emission Color (HDR)","발광 색·세기(HDR). 맵에 곱해진다.") },
             // Face Shadow (SDF)
-            { "_FaceSDF",            new GUIContent("Face SDF",            "얼굴 SDF(거리장). 좌우 플립 샘플링으로 빛 방향별 얼굴 음영을 만든다. (마스크 타입=SDF일 때 사용)") },
-            { "_SDFSoftness",        new GUIContent("SDF Blur",            "SDF 음영 경계의 부드러움. 0이어도 fwidth 기반 ~1px AA가 항상 적용돼 경계 픽셀 노이즈가 없고, 올릴수록 매끈하게 부드러워진다(높여도 얼룩 없음). 폭은 SDF 값 공간 기준 ±값.") },
+            { "_FaceSDF",            new GUIContent("Face SDF",            "얼굴 SDF(거리장). 좌우 플립 샘플링으로 빛 방향별 얼굴 음영을 만든다. (Face SDF Mode=SDF일 때 사용)") },
+            { "_FaceSDFMask",        new GUIContent("Face SDF Mask (R)",   "SDF를 적용할 영역(R). 흰=SDF 경계가 그림자를 지배(이 영역은 2차 밴드 억제 → SDF 범위 밖 번짐 없음), 검=일반 밴드 음영, 중간=블렌드. 미등록(white)=얼굴 전역 SDF. 눈/입 등 SDF가 지저분한 부위만 검게 칠해 밴드로 돌릴 수 있다.") },
+            { "_SDFSoftness",        new GUIContent("SDF Blur",            "SDF 음영 경계의 부드러움. fwidth 기반 선형 AA라 0(또는 아주 낮은 값)이어도 경계가 ~1.5px로 항상 안티앨리어싱돼 노이즈가 없고, 올릴수록 매끈하게 부드러워진다(높여도 얼룩 없음). 폭은 SDF 값 공간 기준 ±값.") },
             { "_UseHairShadow",      new GUIContent("Use Hair Shadow",     "얼굴 위에 드리우는 머리카락 그림자(마스크) 사용. 끄면 컴파일 제거.") },
             { "_HairShadowMask",     new GUIContent("Hair Shadow Mask",    "얼굴 위에 드리우는 머리카락 그림자 마스크.") },
             { "_HairShadowStrength", new GUIContent("Hair Shadow Strength","머리카락 그림자 세기.") },
@@ -144,7 +147,8 @@ namespace CharacterToon.Editor
             { "_MatCap",             new GUIContent("MatCap",              "뷰공간 구면 반사 텍스처(스페큘러/금속 느낌). 가산(발광형) 블렌드.") },
             { "_MatCapStrength",     new GUIContent("MatCap Strength",     "MatCap 세기.") },
             { "_MatCapColor",        new GUIContent("MatCap Color",        "MatCap 베이스 컬러 틴트(샘플에 곱). 흰색=원본 유지. HDR로 색감·밝기 조정(강도는 Strength와 별개).") },
-            { "_MatCapBlur",         new GUIContent("MatCap Blur",         "MatCap 블러(0=선명, 1=흐림). 밉 바이어스 소프트닝 — 텍스처에 밉맵이 있어야 효과. 부드러운 반사/광택용.") },
+            { "_MatCapBlur",         new GUIContent("MatCap Blur",         "MatCap 블러(0=선명, 1=흐림). 밉 바이어스 소프트닝 — 텍스처에 밉맵이 있어야 효과. 실사용상 강도 조절로도 활용 가능.") },
+            { "_MatCapLightInfluence", new GUIContent("Light Influence",    "MatCap에 씬 라이트(색·그림자)가 적용될 강도. 0=발광형(빛 무관, 기존처럼 항상 가산), 1=라이트를 따라 그림자에선 어두워지고 빛 색을 받음. MatCap1·2(Add) 공통. (Lit 전용 — Unlit은 빛이 없어 무효)") },
             { "_MatCapNormalStrength",new GUIContent("Normal Influence",   "노말이 MatCap UV에 미치는 영향도. 0=지오메트릭(매끈한 클래식 MatCap, 시점 흔들림 없음), 1=노말맵 디테일(뷰공간 특성상 시점따라 흔들림). MatCap1/2 공통. 흔들림이 어색하면 낮춘다.") },
             { "_UseMatCapMask",      new GUIContent("Use Separate Mask",   "별도 MatCap 마스크 사용(결정 #16). 끄면 ILM.R(ILM 사용 시)·아니면 전체(1)로 폴백.") },
             { "_MatCapMask",         new GUIContent("MatCap Mask (R)",     "MatCap 적용 마스크(R채널). ILM.R과 분리된 전용 마스크.") },
@@ -234,8 +238,8 @@ namespace CharacterToon.Editor
                 new[] { "_UseAddLights", "_AdditionalLightStrength" });
 
             DrawFoldoutSection(materialEditor, properties, SectionOutline, "Outline",
-                new[] { "_UseOutline", "_OutlineColor", "_OutlineMap", "_OutlineMask", "_OutlineWidth",
-                        "_OutlineDistanceFade", "_OutlineFadeStart", "_OutlineDepthOffset" });
+                new[] { "_UseOutline", "_OutlineColor", "_OutlineMap", "_OutlineWidth", "_OutlineMask", "_OutlineFixWidth",
+                        "_OutlineVertexColorWidth", "_OutlineDepthOffset", "_OutlineDistanceFade", "_OutlineFadeStart" });
 
             // 4-1: 단일 통합 모델을 하위그룹으로 정리(스타일 vs 재질). 별도 Specular 워크플로 아님.
             DrawPBRSection(materialEditor, properties);
@@ -247,7 +251,7 @@ namespace CharacterToon.Editor
             if (currentMode == ViewMode.Advanced)
             {
                 DrawFoldoutSection(materialEditor, properties, SectionMatCap, "MatCap",
-                    new[] { "_UseMatCap", "_MatCap", "_MatCapStrength", "_MatCapColor", "_MatCapBlur", "_MatCapNormalStrength", "_UseMatCapMask", "_MatCapMask",
+                    new[] { "_UseMatCap", "_MatCap", "_MatCapStrength", "_MatCapColor", "_MatCapBlur", "_MatCapLightInfluence", "_MatCapNormalStrength", "_UseMatCapMask", "_MatCapMask",
                             "_UseMatCap2", "_MatCap2", "_MatCap2Strength", "_MatCap2Color", "_MatCap2Blur", "_MatCap2Blend", "_UseMatCap2Mask", "_MatCap2Mask" });
 
                 DrawFoldoutSection(materialEditor, properties, SectionHair, "Hair (Angel Ring)",
@@ -493,10 +497,11 @@ namespace CharacterToon.Editor
                 DrawPropertyIfExists(materialEditor, properties, "_ReceiveShadowStrength");
                 DrawPropertyIfExists(materialEditor, properties, "_ShadowMaskTex");
 
-                // Face SDF (마스크 타입 = SDF 일 때 사용)
+                // Face SDF (Face SDF Mode = SDF 일 때 사용). 그림자 밴드와 한 섹션에 통합 — 마스크로 적용 영역 조절.
                 EditorGUILayout.Space(2);
-                EditorGUILayout.LabelField("Face SDF", EditorStyles.miniBoldLabel);
+                EditorGUILayout.LabelField("Face SDF (밴드와 통합 · 마스크로 영역 제어)", EditorStyles.miniBoldLabel);
                 DrawPropertyIfExists(materialEditor, properties, "_FaceSDF");
+                DrawPropertyIfExists(materialEditor, properties, "_FaceSDFMask");
                 DrawPropertyIfExists(materialEditor, properties, "_SDFSoftness");
                 DrawPropertyIfExists(materialEditor, properties, "_UseHairShadow");
                 DrawPropertyIfExists(materialEditor, properties, "_HairShadowMask");

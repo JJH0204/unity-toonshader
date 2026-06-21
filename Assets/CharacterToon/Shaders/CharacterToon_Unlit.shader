@@ -48,15 +48,18 @@ Shader "CharacterToon/Character Unlit"
         _RimIntensity("Rim Intensity", Range(0,4)) = 1.0
         _RimInteractionBoost("Rim Interaction Boost", Range(1,4)) = 1.0
 
+        // ── Outline (lilToon 외곽선 방식 충실 이식 — Lit과 동일) ──
         [Header(Outline)]
         [Toggle(_USE_OUTLINE)] _UseOutline ("Use Outline", Float) = 1
-        _OutlineColor("Outline Color", Color) = (0,0,0,1)
-        _OutlineMap("Outline Color Map", 2D) = "white" {}
-        _OutlineMask("Outline Mask (R, suppress)", 2D) = "white" {}
-        _OutlineWidth("Outline Width", Range(0,5)) = 1.0
+        [HDR] _OutlineColor("Outline Color", Color) = (0,0,0,1)
+        _OutlineMap("Outline Tex", 2D) = "white" {}
+        _OutlineWidth("Outline Width", Range(0,1)) = 0.08
+        _OutlineMask("Outline Width Mask (R)", 2D) = "white" {}
+        _OutlineFixWidth("Outline Fix Width (near cam)", Range(0,1)) = 0.5
+        [Enum(Off,0,VertexColor R,1,VertexColor A,2)] _OutlineVertexColorWidth("Vertex Color Width", Float) = 0
+        _OutlineDepthOffset("Outline Z Bias", Float) = 0.0
         _OutlineDistanceFade("Outline Distance Fade", Range(0,1)) = 0.0
         _OutlineFadeStart("Outline Fade Start Dist", Range(0.1,50)) = 5.0
-        _OutlineDepthOffset("Outline Depth Offset", Range(0,1)) = 0.0
 
         [Header(MatCap)]
         [Toggle(_USE_MATCAP)] _UseMatCap ("Use MatCap", Float) = 0
@@ -300,6 +303,7 @@ Shader "CharacterToon/Character Unlit"
                 float4 positionOS : POSITION;
                 float3 normalOS   : NORMAL;
                 float4 tangentOS  : TANGENT;
+                float4 color      : COLOR;       // lilToon _OutlineVertexR2Width용
                 float2 uv         : TEXCOORD0;
             };
 
@@ -319,28 +323,36 @@ Shader "CharacterToon/Character Unlit"
             #endif
                 o.uv = input.uv;
 
+                // lilToon lilCalcOutlinePosition 충실 이식 (Lit과 동일).
                 float3 smoothNormalOS = input.tangentOS.xyz;
-                if (length(smoothNormalOS) < 1e-4)
+                // 끊김 방어: tangent가 '진짜 탄젠트'(노멀과 ~수직)면 베이크 안 된 메시 → normalOS 폴백.
+                float tlen = length(smoothNormalOS);
+                if (tlen < 1e-4 || dot(smoothNormalOS / max(tlen, 1e-5), input.normalOS) < 0.3)
                     smoothNormalOS = input.normalOS;
 
                 float3 positionWS = TransformObjectToWorld(input.positionOS.xyz);
                 float3 normalWS   = TransformObjectToWorldNormal(smoothNormalOS);
-                float4 positionCS = TransformWorldToHClip(positionWS);
 
-                float suppressionMask = 1.0;
+                float width = _OutlineWidth * 0.01;
+                width *= SAMPLE_TEXTURE2D_LOD(_OutlineMask, sampler_OutlineMask, input.uv, 0).r;
             #if defined(_USE_ILM)
-                float4 ilm = SAMPLE_TEXTURE2D_LOD(_ILMMap, sampler_ILMMap, input.uv, 0);
-                suppressionMask = 1.0 - ilm.a;
+                width *= 1.0 - SAMPLE_TEXTURE2D_LOD(_ILMMap, sampler_ILMMap, input.uv, 0).a;
             #endif
-                suppressionMask *= SAMPLE_TEXTURE2D_LOD(_OutlineMask, sampler_OutlineMask, input.uv, 0).r;
+                if (_OutlineVertexColorWidth > 1.5h)      width *= input.color.a;
+                else if (_OutlineVertexColorWidth > 0.5h) width *= input.color.r;
 
-                float fovScale = UNITY_MATRIX_P._m11;
-                float distFade = lerp(1.0, saturate(_OutlineFadeStart / max(positionCS.w, 1e-3)), _OutlineDistanceFade);
-                float widthWS = _OutlineWidth * 0.01 * positionCS.w / fovScale * distFade;
+                float3 toCam   = _WorldSpaceCameraPos - positionWS;
+                float  camDist = length(toCam);
+                width *= lerp(1.0, saturate(camDist), _OutlineFixWidth);
+                width *= lerp(1.0, saturate(_OutlineFadeStart / max(camDist, 1e-3)), _OutlineDistanceFade);
 
-                positionWS += normalize(normalWS) * widthWS * suppressionMask;
+                positionWS += normalize(normalWS) * width;
+
+                float3 viewDirWS = (camDist > 1e-5) ? toCam / camDist : float3(0, 0, 0);
+                positionWS -= viewDirWS * _OutlineDepthOffset;
 
                 o.positionCS = TransformWorldToHClip(positionWS);
+
                 o.fogFactor = (half)ComputeFogFactor(o.positionCS.z);
                 return o;
             }
