@@ -143,12 +143,16 @@ namespace CharacterToon.Editor
             { "_UseMatCap",          new GUIContent("Use MatCap",          "MatCap(뷰공간 구면 반사) 사용. 끄면 가산 없음.") },
             { "_MatCap",             new GUIContent("MatCap",              "뷰공간 구면 반사 텍스처(스페큘러/금속 느낌). 가산(발광형) 블렌드.") },
             { "_MatCapStrength",     new GUIContent("MatCap Strength",     "MatCap 세기.") },
+            { "_MatCapColor",        new GUIContent("MatCap Color",        "MatCap 베이스 컬러 틴트(샘플에 곱). 흰색=원본 유지. HDR로 색감·밝기 조정(강도는 Strength와 별개).") },
+            { "_MatCapBlur",         new GUIContent("MatCap Blur",         "MatCap 블러(0=선명, 1=흐림). 밉 바이어스 소프트닝 — 텍스처에 밉맵이 있어야 효과. 부드러운 반사/광택용.") },
             { "_MatCapNormalStrength",new GUIContent("Normal Influence",   "노말이 MatCap UV에 미치는 영향도. 0=지오메트릭(매끈한 클래식 MatCap, 시점 흔들림 없음), 1=노말맵 디테일(뷰공간 특성상 시점따라 흔들림). MatCap1/2 공통. 흔들림이 어색하면 낮춘다.") },
             { "_UseMatCapMask",      new GUIContent("Use Separate Mask",   "별도 MatCap 마스크 사용(결정 #16). 끄면 ILM.R(ILM 사용 시)·아니면 전체(1)로 폴백.") },
             { "_MatCapMask",         new GUIContent("MatCap Mask (R)",     "MatCap 적용 마스크(R채널). ILM.R과 분리된 전용 마스크.") },
             { "_UseMatCap2",         new GUIContent("Use Second MatCap",   "두 번째 MatCap 사용(한 머티리얼에 MatCap 2개). 끄면 컴파일 제거.") },
             { "_MatCap2",            new GUIContent("Second MatCap",       "두 번째 뷰공간 구면 반사 텍스처.") },
             { "_MatCap2Strength",    new GUIContent("Second Strength",     "두 번째 MatCap 세기(Add는 가산량, Multiply는 곱 영향도).") },
+            { "_MatCap2Color",       new GUIContent("Second Color",        "두 번째 MatCap 베이스 컬러 틴트(샘플에 곱). 흰색=원본 유지. HDR 가능.") },
+            { "_MatCap2Blur",        new GUIContent("Second Blur",         "두 번째 MatCap 블러(0=선명, 1=흐림). 밉 바이어스 소프트닝(밉맵 필요).") },
             { "_MatCap2Blend",       new GUIContent("Second Blend",        "두 번째 MatCap 블렌드. Add=가산(하이라이트형), Multiply=곱(음영/AO형).") },
             { "_UseMatCap2Mask",     new GUIContent("Use Second Mask",     "두 번째 MatCap 전용 마스크 사용. 끄면 ILM.R(ILM 사용 시)·아니면 전체(1) 폴백.") },
             { "_MatCap2Mask",        new GUIContent("Second Mask (R)",     "두 번째 MatCap 적용 마스크(R채널).") },
@@ -243,8 +247,8 @@ namespace CharacterToon.Editor
             if (currentMode == ViewMode.Advanced)
             {
                 DrawFoldoutSection(materialEditor, properties, SectionMatCap, "MatCap",
-                    new[] { "_UseMatCap", "_MatCap", "_MatCapStrength", "_MatCapNormalStrength", "_UseMatCapMask", "_MatCapMask",
-                            "_UseMatCap2", "_MatCap2", "_MatCap2Strength", "_MatCap2Blend", "_UseMatCap2Mask", "_MatCap2Mask" });
+                    new[] { "_UseMatCap", "_MatCap", "_MatCapStrength", "_MatCapColor", "_MatCapBlur", "_MatCapNormalStrength", "_UseMatCapMask", "_MatCapMask",
+                            "_UseMatCap2", "_MatCap2", "_MatCap2Strength", "_MatCap2Color", "_MatCap2Blur", "_MatCap2Blend", "_UseMatCap2Mask", "_MatCap2Mask" });
 
                 DrawFoldoutSection(materialEditor, properties, SectionHair, "Hair (Angel Ring)",
                     new[] { "_UseAngelRing", "_AngelRingColor", "_AngelRingIntensity", "_AngelRingPower",

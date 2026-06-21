@@ -6,6 +6,9 @@
 
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 
+// MatCap 블러: 슬라이더(0~1)를 곱해 밉 바이어스로 쓴다. 1.0 → 약 6단계 밉 = 부드러운 반사.
+#define CHAR_MATCAP_BLUR_MAX 6.0h
+
 // --- 텍스처 / 샘플러 (CBUFFER 밖) ---
 TEXTURE2D(_BaseMap);        SAMPLER(sampler_BaseMap);
 TEXTURE2D(_BumpMap);        SAMPLER(sampler_BumpMap);
@@ -92,11 +95,15 @@ CBUFFER_START(UnityPerMaterial)
     half   _UseMatCap;        // [Toggle(_USE_MATCAP)] backing float
     half   _UseMatCapMask;    // 결정 #16: MatCap 마스크 분기 float(키워드 아님 — 변형 절감, _USE_MATCAP 내부 lerp)
     half   _MatCapNormalStrength; // 4-5: 노말이 MatCap UV에 미치는 영향도(0=지오메트릭 매끈, 1=노말맵 섭동). MatCap/2 공통.
+    half4  _MatCapColor;      // 베이스 컬러 틴트(MatCap 샘플에 곱). 기본 흰색=무영향.
+    half   _MatCapBlur;       // 0=선명, 1=흐림. 밉 바이어스로 소프트닝(텍스처에 밉맵 필요).
     // 2-5: 두 번째 MatCap (별도 슬롯/강도/마스크/블렌드)
     half   _MatCap2Strength;
     half   _UseMatCap2;       // [Toggle(_USE_MATCAP2)] backing float
     half   _UseMatCap2Mask;   // float 분기(변형 절감)
     half   _MatCap2Blend;     // 0=Add(가산), 1=Multiply(곱) — float 분기
+    half4  _MatCap2Color;     // 두 번째 MatCap 베이스 컬러 틴트(곱). 기본 흰색=무영향.
+    half   _MatCap2Blur;      // 두 번째 MatCap 블러(밉 바이어스).
     half4  _AngelRingColor;
     half   _AngelRingIntensity;
     half   _AngelRingPower;

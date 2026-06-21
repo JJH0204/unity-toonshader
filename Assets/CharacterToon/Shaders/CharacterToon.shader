@@ -88,6 +88,8 @@ Shader "CharacterToon/Character"
         [Toggle(_USE_MATCAP)] _UseMatCap ("Use MatCap", Float) = 0
         _MatCap("MatCap", 2D) = "black" {}
         _MatCapStrength("MatCap Strength", Range(0,4)) = 1.0
+        [HDR] _MatCapColor("MatCap Color", Color) = (1,1,1,1)
+        _MatCapBlur("MatCap Blur", Range(0,1)) = 0.0
         // 4-5: 노말이 MatCap UV에 미치는 영향도(0=지오메트릭 매끈/시점 흔들림 없음, 1=노말 섭동 디테일). MatCap/2 공통.
         _MatCapNormalStrength("MatCap Normal Influence", Range(0,1)) = 1.0
         [Toggle] _UseMatCapMask ("Use Separate MatCap Mask", Float) = 0
@@ -96,6 +98,8 @@ Shader "CharacterToon/Character"
         [Toggle(_USE_MATCAP2)] _UseMatCap2 ("Use Second MatCap", Float) = 0
         _MatCap2("Second MatCap", 2D) = "black" {}
         _MatCap2Strength("Second MatCap Strength", Range(0,4)) = 1.0
+        [HDR] _MatCap2Color("Second MatCap Color", Color) = (1,1,1,1)
+        _MatCap2Blur("Second MatCap Blur", Range(0,1)) = 0.0
         [Enum(Add,0,Multiply,1)] _MatCap2Blend("Second MatCap Blend", Float) = 0
         [Toggle] _UseMatCap2Mask ("Use Second MatCap Mask", Float) = 0
         _MatCap2Mask("Second MatCap Mask (R)", 2D) = "white" {}
@@ -458,7 +462,8 @@ Shader "CharacterToon/Character"
                     half3 mcN = SafeNormalize(lerp((half3)normalize(input.normalWS), N, _MatCapNormalStrength));
                     float3 normalVS = mul((float3x3)UNITY_MATRIX_V, mcN);
                     float2 matcapUV = normalVS.xy * 0.5 + 0.5;
-                    half3 matcap = SAMPLE_TEXTURE2D(_MatCap, sampler_MatCap, matcapUV).rgb;
+                    // 블러: 밉 바이어스로 소프트닝(분기 quad-uniform → BIAS 안전). 베이스 컬러: 틴트 곱.
+                    half3 matcap = SAMPLE_TEXTURE2D_BIAS(_MatCap, sampler_MatCap, matcapUV, _MatCapBlur * CHAR_MATCAP_BLUR_MAX).rgb * _MatCapColor.rgb;
                     // 결정 #16: 별도 MatCap 마스크. 변형 절감(Codex): 별도 키워드 대신 _UseMatCapMask(CBUFFER float)로 분기.
                     // 2-4 피드백: 별도 마스크 off 일 때의 베이스를 ILM 사용 시 ilm.r, ILM 미사용 시 1.0(전체)로 한다.
                     //   (기존엔 ILM off여도 ilm.r=0 폴백 → MatCap이 마스크를 켜야만 보이던 트랩 → 해소.)
@@ -480,7 +485,7 @@ Shader "CharacterToon/Character"
                     half3 mcN2 = SafeNormalize(lerp((half3)normalize(input.normalWS), N, _MatCapNormalStrength)); // 4-5: 노말 영향도(공통)
                     float3 normalVS2 = mul((float3x3)UNITY_MATRIX_V, mcN2);
                     float2 matcap2UV = normalVS2.xy * 0.5 + 0.5;
-                    half3 matcap2 = SAMPLE_TEXTURE2D(_MatCap2, sampler_MatCap2, matcap2UV).rgb;
+                    half3 matcap2 = SAMPLE_TEXTURE2D_BIAS(_MatCap2, sampler_MatCap2, matcap2UV, _MatCap2Blur * CHAR_MATCAP_BLUR_MAX).rgb * _MatCap2Color.rgb;
                     half mask2Tex = SAMPLE_TEXTURE2D(_MatCap2Mask, sampler_MatCap2Mask, input.uv).r;
                     half matcap2Base = 1.0h;
                 #if defined(_USE_ILM)
