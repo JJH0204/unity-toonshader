@@ -26,6 +26,7 @@ Shader "Hidden/CharacterToon/ScreenSpaceOutline"
             float  _OutlineSSThickness;      // 픽셀 단위 샘플 간격
             float  _OutlineSSDepthThreshold; // 깊이 엣지 임계(뷰 공간 거리)
             float  _OutlineSSNormalThreshold;// 노멀 엣지 임계
+            float  _OutlineSSDepthScale;     // B3: 0=절대 깊이차(기존), 1=뷰깊이 비례(원/근 일관 — 배경 큰 깊이폭 대응)
 
             half4 Frag(Varyings input) : SV_Target
             {
@@ -41,6 +42,9 @@ Shader "Hidden/CharacterToon/ScreenSpaceOutline"
                 float dY  = LinearEyeDepth(SampleSceneDepth(uv + float2(0, t.y)), _ZBufferParams);
                 float dXY = LinearEyeDepth(SampleSceneDepth(uv + t),             _ZBufferParams);
                 float depthEdge = abs(dC - dX) + abs(dC - dY) + abs(dC - dXY);
+                // B3: 깊이차를 중심 깊이로 정규화하면 단일 임계가 원/근 모두에서 일관(배경 큰 깊이폭 대응). scale=0이면 기존 동작.
+                float depthRef = lerp(1.0, max(dC, 1e-3), _OutlineSSDepthScale);
+                depthEdge /= depthRef;
 
                 // 노멀 엣지 — 월드 노멀 차
                 half3 nC = SampleSceneNormals(uv);
@@ -50,6 +54,11 @@ Shader "Hidden/CharacterToon/ScreenSpaceOutline"
 
                 float edge = saturate(step(_OutlineSSDepthThreshold,  depthEdge)
                                     + step(_OutlineSSNormalThreshold, normalEdge));
+
+                // B3: per-object 외곽선 억제 — 노멀 텍스처 w 채널(SceneToon DepthNormals 가 _OutlineSuppress 기록).
+                //   캐릭터/URP Lit 은 w=0 → 영향 없음(하위호환). 1=해당 픽셀 외곽선 제거.
+                float suppress = SAMPLE_TEXTURE2D_X(_CameraNormalsTexture, sampler_PointClamp, uv).w;
+                edge *= (1.0 - saturate(suppress));
 
                 return lerp(srcColor, _OutlineSSColor, edge * _OutlineSSColor.a);
             }

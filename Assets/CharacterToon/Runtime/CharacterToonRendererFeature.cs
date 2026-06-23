@@ -30,6 +30,8 @@ namespace CharacterToon
             [Min(0f)] public float thickness = 1.0f;
             [Min(0f)] public float depthThreshold = 0.2f;
             [Min(0f)] public float normalThreshold = 0.4f;
+            [Range(0f, 1f), Tooltip("0=절대 깊이차(기존). 1=뷰깊이 비례 — 배경의 큰 깊이폭에서 원/근 외곽선 일관(B3).")]
+            public float depthScale = 0f;
             public RenderPassEvent renderPassEvent = RenderPassEvent.AfterRenderingOpaques;
         }
 
@@ -63,6 +65,7 @@ namespace CharacterToon
                     _outlineMaterial.SetFloat(ShaderIds.OutlineSSThickness, outline.thickness);
                     _outlineMaterial.SetFloat(ShaderIds.OutlineSSDepthThreshold, outline.depthThreshold);
                     _outlineMaterial.SetFloat(ShaderIds.OutlineSSNormalThreshold, outline.normalThreshold);
+                    _outlineMaterial.SetFloat(ShaderIds.OutlineSSDepthScale, outline.depthScale);
                     _outlinePass.renderPassEvent = outline.renderPassEvent;
                     renderer.EnqueuePass(_outlinePass);
                 }
@@ -82,6 +85,7 @@ namespace CharacterToon
             public static readonly int OutlineSSThickness       = Shader.PropertyToID("_OutlineSSThickness");
             public static readonly int OutlineSSDepthThreshold  = Shader.PropertyToID("_OutlineSSDepthThreshold");
             public static readonly int OutlineSSNormalThreshold = Shader.PropertyToID("_OutlineSSNormalThreshold");
+            public static readonly int OutlineSSDepthScale       = Shader.PropertyToID("_OutlineSSDepthScale");
         }
 
         /// <summary>O1: 깊이/노멀을 읽어 풀스크린 엣지 합성. 카메라 컬러를 임시 텍스처로 블릿 후 스왑.</summary>
