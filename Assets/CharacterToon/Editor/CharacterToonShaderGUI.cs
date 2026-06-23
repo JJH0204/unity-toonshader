@@ -90,7 +90,8 @@ namespace CharacterToon.Editor
             { "_ShadowStrength",     new GUIContent("Shadow Strength",     "그림자 전체 적용 강도/범위. 0이면 그림자 없음.") },
             { "_ReceiveShadowStrength",new GUIContent("Receive Cast Shadow","받는 캐스트 그림자(메인 라이트 섀도)가 음영을 어둡게 하는 정도. 운용: 얼굴 OFF(0)/바디 ON(1).") },
             { "_ShadowMaskType",     new GUIContent("Face SDF Mode",       "얼굴 SDF 사용 여부(마스터). SDF=거리장 플립샘플 경계를 그림자 밴드와 합쳐 사용, Strength=SDF 끄고 일반 half-Lambert 밴드만. 얼굴이 아니면 항상 밴드만. SDF를 '어디에' 적용할지는 Face SDF Mask로 조절.") },
-            { "_ShadowMaskTex",      new GUIContent("Shadow Mask (R)",     "일반 그림자 억제 마스크(R채널). 0인 영역은 그림자가 안 진다(눈동자·눈 흰자 등). 미할당(white)=전체 적용.") },
+            { "_UseShadowMask",      new GUIContent("Use Shadow Mask",     "그림자 억제 마스크 사용. 끄면(기본) 텍스처 페치 자체를 스킵해 픽셀 비용 절감(변형 증가 없음). 마스크를 쓰려면 켠다.") },
+            { "_ShadowMaskTex",      new GUIContent("Shadow Mask (R)",     "일반 그림자 억제 마스크(R채널). 0인 영역은 그림자가 안 진다(눈동자·눈 흰자 등). 미할당(white)=전체 적용. (Use Shadow Mask 켜야 적용)") },
             { "_UseRamp",            new GUIContent("Use Ramp LUT",        "켜면 파라메트릭 밴드 대신 RampMap LUT로 음영을 계산(고급/특수 톤).") },
             // Rim Light
             { "_UseRim",             new GUIContent("Use Rim Light",       "림 라이트(역광 테두리) 사용. 끄면 연산이 컴파일 단계에서 제거된다(Depth Rim은 별도 토글).") },
@@ -495,6 +496,7 @@ namespace CharacterToon.Editor
                 EditorGUILayout.Space(2);
                 EditorGUILayout.LabelField("Receive / Mask", EditorStyles.miniBoldLabel);
                 DrawPropertyIfExists(materialEditor, properties, "_ReceiveShadowStrength");
+                DrawPropertyIfExists(materialEditor, properties, "_UseShadowMask");
                 DrawPropertyIfExists(materialEditor, properties, "_ShadowMaskTex");
 
                 // Face SDF (Face SDF Mode = SDF 일 때 사용). 그림자 밴드와 한 섹션에 통합 — 마스크로 적용 영역 조절.

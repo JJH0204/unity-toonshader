@@ -26,6 +26,7 @@ Material:
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
   - _PART_SKIN
+  - _USE_ADD_LIGHTS
   - _USE_ANGELRING
   - _USE_OUTLINE
   - _USE_RIM
@@ -216,7 +217,7 @@ Material:
     - _Shadow2ndBlur: 0.1
     - _Shadow2ndBorder: 0.25
     - _ShadowBlur: 0.1
-    - _ShadowBorder: 0.5
+    - _ShadowBorder: 0.321
     - _ShadowMaskType: 1
     - _ShadowOffsetScale: 0
     - _ShadowStrength: 1
@@ -259,14 +260,14 @@ Material:
     - _ZWrite: 1
     m_Colors:
     - _AngelRingColor: {r: 1, g: 1, b: 1, a: 1}
-    - _BaseColor: {r: 0.8078432, g: 0.69803923, b: 0.64705884, a: 1}
+    - _BaseColor: {r: 1, g: 1, b: 1, a: 0}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _DepthRimColor: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _OutlineColor: {r: 0.32156864, g: 0.21176472, b: 0.16470589, a: 1}
     - _RimColor: {r: 0.9921569, g: 0.8588236, b: 0.8000001, a: 1}
-    - _Shadow2ndColor: {r: 0.9622642, g: 0.4493592, b: 0.65209484, a: 1}
-    - _ShadowColor: {r: 0.9433962, g: 0.6007476, b: 0.7252514, a: 1}
+    - _Shadow2ndColor: {r: 1, g: 1, b: 1, a: 1}
+    - _ShadowColor: {r: 0, g: 0, b: 0, a: 1}
     - _SkinSSSColor: {r: 1, g: 0.39999998, b: 0.39999998, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
     - _SpecularTint: {r: 1, g: 1, b: 1, a: 1}

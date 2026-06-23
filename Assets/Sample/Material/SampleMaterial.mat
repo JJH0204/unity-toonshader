@@ -13,7 +13,11 @@ Material:
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
   - _PART_NONE
+  - _USE_ADD_LIGHTS
+  - _USE_ANGELRING
   - _USE_ILM
+  - _USE_OUTLINE
+  - _USE_RIM
   m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
@@ -26,6 +30,10 @@ Material:
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
+    - _AngelRingMask:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _BaseMap:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
@@ -58,6 +66,10 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _FaceSDFMask:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _HairShadowMask:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
@@ -74,11 +86,31 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _MatCap2:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MatCap2Mask:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MatCapMask:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _MetallicGlossMap:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _OcclusionMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _OutlineMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _OutlineMask:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
@@ -90,7 +122,15 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _ShadowMaskTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _SpecGlossMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _StencilMask:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
@@ -108,10 +148,13 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
+    - _AOStrength: 1
     - _AddPrecomputedVelocity: 0
+    - _AdditionalLightStrength: 1
     - _AlphaClip: 0
     - _AlphaToMask: 0
     - _AmbientStrength: 1
+    - _AngelRingAngle: 0
     - _AngelRingIntensity: 1
     - _AngelRingPower: 20
     - _Blend: 0
@@ -122,6 +165,9 @@ Material:
     - _Cull: 2
     - _Cutoff: 0.5
     - _DebugFaceLit: 0
+    - _DepthRimIntensity: 1
+    - _DepthRimThreshold: 0.1
+    - _DepthRimWidth: 2
     - _DetailAlbedoMapScale: 1
     - _DetailNormalMapScale: 1
     - _DstBlend: 0
@@ -133,49 +179,94 @@ Material:
     - _Glossiness: 0
     - _GlossyReflections: 0
     - _HairShadowStrength: 1
+    - _MatCap2Blend: 0
+    - _MatCap2Blur: 0
+    - _MatCap2Strength: 1
+    - _MatCapBlur: 0
+    - _MatCapLightInfluence: 0
+    - _MatCapNormalStrength: 1
     - _MatCapStrength: 1
     - _Metallic: 0
     - _OcclusionStrength: 1
     - _OutlineDepthOffset: 0
+    - _OutlineDistanceFade: 0
+    - _OutlineFadeStart: 5
+    - _OutlineFixWidth: 0.5
     - _OutlineWidth: 0.82
     - _Parallax: 0.005
     - _Part: 0
+    - _QualityFadeEnd: 40
+    - _QualityFadeStart: 15
     - _QueueOffset: 0
     - _RampRow: 0.52
+    - _ReceiveShadowStrength: 1
     - _ReceiveShadows: 1
+    - _ReflectionStrength: 0.5
     - _RimIntensity: 1.9
     - _RimInteractionBoost: 1.89
     - _RimSoftness: 0.293
     - _RimThreshold: 0.445
     - _SDFSoftness: 0.05
     - _ShadeFloor: 0
+    - _Shadow2ndBlur: 0.1
+    - _Shadow2ndBorder: 0.25
+    - _ShadowBlur: 0.1
+    - _ShadowBorder: 0.5
+    - _ShadowMaskType: 0
     - _ShadowOffsetScale: 0
+    - _ShadowStrength: 1
     - _SkinSSSCenter: 0.5
     - _SkinSSSStrength: 0.5
     - _SkinSSSWidth: 0.1
     - _Smoothness: 0.5
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
+    - _SpecularStep: 0.05
     - _SrcBlend: 1
     - _SrcBlendAlpha: 1
     - _StencilComp: 8
+    - _StencilMaskCutoff: 0.5
     - _StencilPass: 0
     - _StencilRef: 0
     - _Surface: 0
+    - _UseAddLights: 1
+    - _UseAngelRing: 1
+    - _UseDepthRim: 0
     - _UseEmission: 0
+    - _UseEyeParallax: 0
+    - _UseHairShadow: 0
     - _UseILM: 1
+    - _UseMatCap: 0
+    - _UseMatCap2: 0
+    - _UseMatCap2Mask: 0
+    - _UseMatCapMask: 0
+    - _UseNormalMap: 0
+    - _UseOutline: 1
+    - _UsePBR: 0
+    - _UseQualityFade: 0
+    - _UseRamp: 0
+    - _UseRim: 1
+    - _UseSSS: 0
+    - _UseStencilMask: 0
     - _WorkflowMode: 1
     - _XRMotionVectorsPass: 1
+    - _ZTestMode: 4
     - _ZWrite: 1
     m_Colors:
     - _AngelRingColor: {r: 1, g: 1, b: 1, a: 1}
     - _BaseColor: {r: 0.6320754, g: 0.3488341, b: 0.3488341, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _DepthRimColor: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+    - _MatCap2Color: {r: 1, g: 1, b: 1, a: 1}
+    - _MatCapColor: {r: 1, g: 1, b: 1, a: 1}
     - _OutlineColor: {r: 0, g: 0, b: 0, a: 1}
     - _RimColor: {r: 1, g: 1, b: 1, a: 1}
+    - _Shadow2ndColor: {r: 0.54999995, g: 0.56999993, b: 0.65999997, a: 1}
+    - _ShadowColor: {r: 0.72, g: 0.74, b: 0.82, a: 1}
     - _SkinSSSColor: {r: 1, g: 0.39999998, b: 0.39999998, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
+    - _SpecularTint: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
 --- !u!114 &3100677641884595015

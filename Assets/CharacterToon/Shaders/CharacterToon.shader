@@ -41,6 +41,7 @@ Shader "CharacterToon/Character"
         _ReceiveShadowStrength("Receive Cast Shadow", Range(0,1)) = 1.0
         // 2-1: 그림자 마스크 타입(SDF=얼굴 플립샘플 / Strength=일반 half-Lambert) + 일반 그림자 억제 마스크
         [Enum(SDF,0,Strength,1)] _ShadowMaskType("Shadow Mask Type", Float) = 0
+        [Toggle] _UseShadowMask ("Use Shadow Suppress Mask", Float) = 0
         _ShadowMaskTex("Shadow Mask (R, suppress)", 2D) = "white" {}
 
         [Header(Part)]
@@ -383,9 +384,13 @@ Shader "CharacterToon/Character"
 
                 // 2-1: 일반 그림자 억제 마스크 — R<1 영역은 그림자를 억제(빛 쪽으로). 양쪽 라이트값에 일괄.
                 // 눈동자·눈 안쪽 흰자 등 만화적으로 음영을 안 지게 하고 싶은 영역 제어용. 중립 폴백 white=no-op.
-                half shadowMaskTex = SAMPLE_TEXTURE2D(_ShadowMaskTex, sampler_ShadowMaskTex, input.uv).r;
-                lightVal = lerp(1.0h, lightVal, shadowMaskTex);
-                faceLit  = lerp(1.0h, faceLit,  shadowMaskTex);
+                // 변형 절감: 키워드 대신 머티리얼 상수 분기(_UseMatCapMask 패턴). off면 텍스처 페치 자체를 스킵(coherent).
+                if (_UseShadowMask > 0.5h)
+                {
+                    half shadowMaskTex = SAMPLE_TEXTURE2D(_ShadowMaskTex, sampler_ShadowMaskTex, input.uv).r;
+                    lightVal = lerp(1.0h, lightVal, shadowMaskTex);
+                    faceLit  = lerp(1.0h, faceLit,  shadowMaskTex);
+                }
 
                 // ── 단일 그림자 단계: 밴드 음영 ⊕ SDF 경계를 sdfApply로 병합 ──
                 // 기본: 파라메트릭 1·2차 밴드(모델러 요구), 옵션(_USE_RAMP): RampMap LUT
@@ -598,7 +603,7 @@ Shader "CharacterToon/Character"
                 #if defined(_PART_SKIN) && defined(_USE_SSS)
                 if (hqAmount > 0.0h)   // S2: 원거리면 SSS 스킵 + 페이드
                 {
-                    half border = 1.0h - saturate(abs(lightVal - _SkinSSSCenter) / _SkinSSSWidth);
+                    half border = 1.0h - saturate(abs(lightVal - _SkinSSSCenter) / max(_SkinSSSWidth, 1e-4h));
                     shaded += border * _SkinSSSColor.rgb * _SkinSSSStrength * hqAmount;
                 }
                 #endif

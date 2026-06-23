@@ -13,6 +13,7 @@ Material:
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
   - _PART_CLOTH
+  - _USE_ADD_LIGHTS
   - _USE_ANGELRING
   - _USE_EMISSION
   - _USE_MATCAP
@@ -32,6 +33,10 @@ Material:
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
+    - _AngelRingMask:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _BaseMap:
         m_Texture: {fileID: 2800000, guid: aa4edb15436a1e8418dfb83cd160453d, type: 3}
         m_Scale: {x: 1, y: 1}
@@ -61,6 +66,10 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _FaceSDF:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _FaceSDFMask:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
@@ -142,10 +151,13 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
+    - _AOStrength: 1
     - _AddPrecomputedVelocity: 0
+    - _AdditionalLightStrength: 1
     - _AlphaClip: 0
     - _AlphaToMask: 0
     - _AmbientStrength: 1
+    - _AngelRingAngle: 0
     - _AngelRingIntensity: 4
     - _AngelRingPower: 1
     - _Blend: 0
@@ -171,14 +183,20 @@ Material:
     - _GlossyReflections: 0
     - _HairShadowStrength: 1
     - _MatCap2Blend: 0
+    - _MatCap2Blur: 0
     - _MatCap2Strength: 1
+    - _MatCapBlur: 0
+    - _MatCapLightInfluence: 0
+    - _MatCapNormalStrength: 1
     - _MatCapStrength: 1.99
     - _Metallic: 0
     - _OcclusionStrength: 1
     - _OutlineDepthOffset: 0
     - _OutlineDistanceFade: 1
     - _OutlineFadeStart: 0.5
-    - _OutlineWidth: 4.96
+    - _OutlineFixWidth: 0.14
+    - _OutlineVertexColorWidth: 0
+    - _OutlineWidth: 0.54
     - _Parallax: 0.005
     - _Part: 4
     - _QualityFadeEnd: 40
@@ -215,6 +233,7 @@ Material:
     - _StencilPass: 0
     - _StencilRef: 0
     - _Surface: 0
+    - _UseAddLights: 1
     - _UseAngelRing: 1
     - _UseDepthRim: 0
     - _UseEmission: 1
@@ -243,7 +262,9 @@ Material:
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _DepthRimColor: {r: 0, g: 0.9811321, b: 0.95344716, a: 1}
     - _EmissionColor: {r: 0, g: 62.412865, b: 63.999992, a: 1}
-    - _OutlineColor: {r: 1, g: 0, b: 0, a: 1}
+    - _MatCap2Color: {r: 1, g: 1, b: 1, a: 1}
+    - _MatCapColor: {r: 1, g: 1, b: 1, a: 1}
+    - _OutlineColor: {r: 0.5943396, g: 0.54668033, b: 0.54668033, a: 1}
     - _RimColor: {r: 0.6415094, g: 0, b: 0, a: 1}
     - _Shadow2ndColor: {r: 0.018987179, g: 0, b: 1, a: 1}
     - _ShadowColor: {r: 0.9811321, g: 0.29156283, b: 0.51465863, a: 1}
