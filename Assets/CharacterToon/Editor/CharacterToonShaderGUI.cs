@@ -63,6 +63,7 @@ namespace CharacterToon.Editor
         {
             // Surface
             { "_Surface",            new GUIContent("Rendering Mode",       "렌더링 모드. Opaque=불투명, Transparent=반투명(알파 블렌드, ZWrite off). 부위별로 다른 모드 가능(눈 등은 Opaque 유지).") },
+            { "_Cull",               new GUIContent("Render Face",          "그릴 면 선택. 앞면만=일반(기본) / 뒷면만=안쪽 면(스커트 안감 등) / 양면=둘 다(컬링 끔, 그리기 비용↑). Outline 패스는 영향받지 않음.") },
             // Main Color
             { "_BaseMap",            new GUIContent("Main Texture",        "메인(베이스) albedo 텍스처. 컬러이므로 sRGB로 임포트.") },
             { "_BaseColor",          new GUIContent("Main Color",          "메인 색조(틴트). 텍스처에 곱해진다.") },
@@ -218,6 +219,9 @@ namespace CharacterToon.Editor
             // 2-3: 렌더링 모드(Opaque/Transparent) — 인스펙터 최상단. 변경 시 Blend/ZWrite/RenderQueue 설정.
             DrawSurfaceModeDropdown(materialEditor, properties);
 
+            // 렌더 면(Render Face): 앞면만/뒷면만/양면. _Cull(Cull 상태) 직접 설정 — Outline 패스 제외.
+            DrawRenderFaceDropdown(materialEditor, properties);
+
             EditorGUILayout.Space();
 
             // [S] Simple+Advanced 공통 섹션 (lilToon 용어)
@@ -321,6 +325,36 @@ namespace CharacterToon.Editor
                         EditorUtility.SetDirty(m);
                     }
                 }
+            }
+        }
+
+        // Render Face 드롭다운: 표시 인덱스 → _Cull(CullMode) 값 매핑.
+        //   앞면만=Back(2, 기본) / 뒷면만=Front(1) / 양면=Off(0).
+        private static readonly int[] _cullValues = { 2, 1, 0 };
+        private static readonly string[] _cullDisplay = { "앞면만 (Front)", "뒷면만 (Back)", "양면 (Both)" };
+
+        /// <summary>
+        /// 렌더 면 선택 드롭다운. _Cull(셰이더 Cull 상태) 을 직접 설정한다(키워드 아님 → 변형 영향 없음).
+        /// ForwardToon/ShadowCaster/DepthOnly/DepthNormals 패스에 적용되며 Outline(Inverted Hull, Cull Front)은 제외.
+        /// </summary>
+        private void DrawRenderFaceDropdown(MaterialEditor materialEditor, MaterialProperty[] properties)
+        {
+            MaterialProperty cull = FindProperty("_Cull", properties, false);
+            if (cull == null)
+                return;
+
+            int idx = System.Array.IndexOf(_cullValues, (int)cull.floatValue);
+            if (idx < 0) idx = 0;
+
+            EditorGUI.BeginChangeCheck();
+            EditorGUI.showMixedValue = cull.hasMixedValue;
+            _labels.TryGetValue("_Cull", out GUIContent label);
+            int newIdx = EditorGUILayout.Popup(label ?? new GUIContent("Render Face"), idx, _cullDisplay);
+            EditorGUI.showMixedValue = false;
+            if (EditorGUI.EndChangeCheck())
+            {
+                // MaterialProperty.floatValue 세터가 다중 선택 타깃 + Undo 를 자동 처리.
+                cull.floatValue = _cullValues[newIdx];
             }
         }
 

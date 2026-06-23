@@ -10,6 +10,9 @@ Shader "CharacterToon/Character"
         [HideInInspector] _SrcBlend ("__src", Float) = 1
         [HideInInspector] _DstBlend ("__dst", Float) = 0
         [HideInInspector] _ZWrite ("__zw", Float) = 1
+        // 렌더 면 선택(Render Face): Off=0(양면) / Front=1(뒷면만) / Back=2(앞면만, 기본).
+        // ShaderGUI 'Render Face' 드롭다운으로 설정. 렌더 스테이트 전용(HLSL 미사용) → UnityPerMaterial CBUFFER 미포함.
+        [Enum(UnityEngine.Rendering.CullMode)] _Cull ("Cull (Render Face)", Float) = 2
 
         [Header(Base)]
         _BaseMap("Base Map", 2D) = "white" {}
@@ -184,7 +187,7 @@ Shader "CharacterToon/Character"
             Name "ForwardToon"
             Tags { "LightMode" = "UniversalForwardOnly" }
 
-            Cull Back
+            Cull [_Cull]
             Blend [_SrcBlend] [_DstBlend]   // 2-3: Opaque=One,Zero / Transparent=SrcAlpha,OneMinusSrcAlpha
             ZWrite [_ZWrite]                // 2-3: Opaque=On / Transparent=Off
             ZTest [_ZTestMode]              // 3-2: 기본 LEqual / 앞머리 투과 읽기 머티리얼은 Always
@@ -261,8 +264,13 @@ Shader "CharacterToon/Character"
                 return o;
             }
 
-            half4 frag(Varyings input) : SV_TARGET
+            half4 frag(Varyings input, FRONT_FACE_TYPE faceSign : FRONT_FACE_SEMANTIC) : SV_TARGET
             {
+                // 양면(Cull Off)·뒷면(Cull Front) 렌더 시 뒷면 노멀 반전 → 음영/매트캡/반사 정합.
+                //   앞면만(기본 Cull Back)은 뒷면이 래스터화 안 되어 faceSign 항상 front → ×1(no-op, 무분기·무변형).
+                //   IS_FRONT_VFACE: 플랫폼별 VFACE 부호차/SV_IsFrontFace 차이를 흡수(URP Common.hlsl).
+                input.normalWS *= IS_FRONT_VFACE(faceSign, 1.0, -1.0);
+
                 half4 baseColor = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.uv) * _BaseColor;
 
                 // 3-2: 스텐실 영역 마스크 — 마스크 밖 픽셀은 clip(색/깊이/스텐실 쓰기 모두 제외).
@@ -753,7 +761,7 @@ Shader "CharacterToon/Character"
             ZWrite On
             ZTest LEqual
             ColorMask 0
-            Cull Back
+            Cull [_Cull]
 
             HLSLPROGRAM
             #pragma vertex vert
@@ -823,7 +831,7 @@ Shader "CharacterToon/Character"
 
             ZWrite On
             ColorMask R
-            Cull Back
+            Cull [_Cull]
 
             HLSLPROGRAM
             #pragma vertex vert
@@ -857,7 +865,7 @@ Shader "CharacterToon/Character"
             Tags { "LightMode" = "DepthNormals" }
 
             ZWrite On
-            Cull Back
+            Cull [_Cull]
 
             HLSLPROGRAM
             #pragma vertex vert
@@ -885,9 +893,11 @@ Shader "CharacterToon/Character"
                 return o;
             }
 
-            half4 frag(Varyings input) : SV_TARGET
+            half4 frag(Varyings input, FRONT_FACE_TYPE faceSign : FRONT_FACE_SEMANTIC) : SV_TARGET
             {
-                return half4(normalize(input.normalWS), 0.0);
+                // 양면/뒷면 렌더 시 출력 노멀도 반전 → SSAO·노멀 기반 효과 정합(앞면만이면 ×1 no-op).
+                half3 nrmWS = normalize(input.normalWS) * IS_FRONT_VFACE(faceSign, 1.0, -1.0);
+                return half4(nrmWS, 0.0);
             }
             ENDHLSL
         }
