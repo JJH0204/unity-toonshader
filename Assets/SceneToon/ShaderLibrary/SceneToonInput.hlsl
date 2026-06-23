@@ -3,7 +3,7 @@
 
 // 배경 전용 툰 셰이더 입력 (Docs/10). 모든 패스가 이 파일 하나만 include 한다.
 //   UnityPerMaterial CBUFFER 를 단일 정의로 강제 → 전 패스 동일 레이아웃(SRP Batcher 핵심, 계획서 8장).
-// 공유 음영 코어(D-3)는 ToonShared 에서 끌어온다 — 캐릭터와 동일 셀 톤.
+// 배경 전용 셀 코어(ToonShared)를 사용 — 캐릭터 인라인 수식을 복제해 톤 일치(캐릭터는 ToonShared 비의존, D-3 재검토).
 
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 #include "../../ToonShared/ShaderLibrary/ToonRamp.hlsl"

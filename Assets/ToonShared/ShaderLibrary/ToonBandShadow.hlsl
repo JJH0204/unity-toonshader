@@ -1,9 +1,9 @@
 #ifndef TOONSHARED_BANDSHADOW_INCLUDED
 #define TOONSHARED_BANDSHADOW_INCLUDED
 
-// 공유 툰 코어 (D-3): 파라메트릭 1·2차 그림자 밴드.
-//   CharacterToon.shader ForwardToon 의 밴드 공식(결정 #17)을 함수로 추출 — 캐릭터/배경이
-//   동일한 border/blur/strength 의미로 같은 셀 경계를 그려 한 화면 톤을 일치시킨다.
+// 배경(SceneToon/Terrain) 전용 셀 코어 — 파라메트릭 1·2차 그림자 밴드 + GI 포스터라이즈.
+//   ⚠ 동기화 규약(D-3 재검토): 캐릭터는 ToonShared 비의존(독립). 이 밴드 공식은 CharacterToon(결정 #17)을
+//     '복제'한 것이라 톤 일치 — 캐릭터 밴드 수식 변경 시 여기를 맞춰 수동 동기화.
 // 규약: CBUFFER 멤버 비참조, 인자 전달만. Core.hlsl 선행 include 가정.
 
 // 단일 밴드 계수(0=빛, 1=그림자). blur=0(하드 컷) 시 0-나눗셈 방지 가드.

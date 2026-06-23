@@ -1,9 +1,11 @@
 #ifndef TOONSHARED_RAMP_INCLUDED
 #define TOONSHARED_RAMP_INCLUDED
 
-// 공유 툰 코어 (D-3): 캐릭터(CharacterToon)·배경(SceneToon)이 동일한 셀 톤을 내기 위한
-//   half-Lambert → Ramp 입력(U) 변환과 Ramp LUT 샘플 헬퍼.
-// 규약: 모든 함수는 CBUFFER 멤버를 직접 참조하지 않고 인자로만 받는다(양쪽 셰이더 재사용 위해).
+// 배경(SceneToon/Terrain) 전용 셀 코어 — half-Lambert → Ramp 입력(U) + Ramp LUT 샘플.
+//   ⚠ 동기화 규약(D-3 재검토): 캐릭터는 ToonShared 에 의존하지 않는다(안정성 — 성숙 자산 독립).
+//     이 수식들은 CharacterToon 의 인라인 셀 수식을 '복제'한 것이라 톤이 일치한다.
+//     캐릭터 셀 수식이 바뀌면 여기를 맞춰 수동 동기화(컴파일 강제 아님).
+// 규약: 모든 함수는 CBUFFER 멤버를 직접 참조하지 않고 인자로만 받는다(배경 셰이더 간 재사용).
 // 선행: 호출 측이 com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl 을 먼저 include 한다
 //   (TEXTURE2D_PARAM / SAMPLE_TEXTURE2D / half 타입 매크로 제공).
 
