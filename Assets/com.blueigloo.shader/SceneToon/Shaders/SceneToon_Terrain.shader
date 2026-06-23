@@ -1,4 +1,4 @@
-Shader "SceneToon/Terrain"
+Shader "com.blueigloo/SceneToon/Terrain"
 {
     // 배경 지형(Unity Terrain) 툰 셰이더 — B2 초안 (Docs/10 §7.3, D-4).
     //   4-스플랫 블렌딩 + 공유 코어(밴드 음영 + GI 툰화)로 SceneToon 과 동일 셀 톤. 지형 Material 슬롯에 지정해 사용.

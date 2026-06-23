@@ -1,4 +1,4 @@
-Shader "CharacterToon/Character"
+Shader "com.blueigloo/CharacterToon/Character"
 {
     // M0 스켈레톤 (T0-6). 5개 패스 + UnityPerMaterial 단일 레이아웃.
     // ForwardToon 본문은 M1(T1-1~T1-6)에서 ILM/Ramp/캐릭터라이트/림으로 채운다.

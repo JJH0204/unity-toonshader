@@ -1,4 +1,4 @@
-Shader "SceneToon/Sky"
+Shader "com.blueigloo/SceneToon/Sky"
 {
     // 배경막 스카이 돔/평면 — B2 초안 (Docs/10 §7.4, D-7).
     //   절차적 2~3색 그라데이션 unlit. 돔/구 메시 안쪽에 적용해 사용. 깊이 최후단(ZWrite Off, Queue Background),

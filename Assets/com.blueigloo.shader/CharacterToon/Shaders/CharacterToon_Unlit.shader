@@ -1,4 +1,4 @@
-Shader "CharacterToon/Character Unlit"
+Shader "com.blueigloo/CharacterToon/Character Unlit"
 {
     // ===========================================================================================
     // CharacterToon 의 Unlit(무광) 변형. 같은 CharacterToon/Character 머티리얼에서 "셰이더만 교체"하면

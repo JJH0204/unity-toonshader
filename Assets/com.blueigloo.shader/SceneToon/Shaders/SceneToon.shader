@@ -1,4 +1,4 @@
-Shader "SceneToon/Scene"
+Shader "com.blueigloo/SceneToon/Scene"
 {
     // 배경 전용 툰 셰이더 — B0 스켈레톤 (Docs/10).
     //   공유 음영 코어(ToonShared, D-3)로 캐릭터와 동일 셀 톤. 4패스 + UnityPerMaterial 단일 레이아웃.
