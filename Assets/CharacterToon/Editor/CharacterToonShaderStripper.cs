@@ -11,9 +11,9 @@ namespace CharacterToon.Editor
     ///
     /// 현재 정책:
     ///  - _DEBUG_FACELIT 은 에디터 진단 전용 -> 플레이어 빌드에서 항상 제거.
-    ///  - (TODO) 출하 material preset 조합이 확정되면, 실제로 쓰지 않는
-    ///    _PART_* / _USE_MATCAP / _USE_EYE_PARALLAX / _USE_HAIR_SHADOW / _USE_ILM / _USE_EMISSION
-    ///    조합을 아래 allowlist 로직에 추가해 변형 수를 더 줄인다.
+    ///  - 파트 불일치 '불가능 조합' 제거(셰이더 #if로 이미 dead라 안전, fallback 동일 픽셀):
+    ///      _USE_HAIR_SHADOW ∧ ¬_PART_FACE / _USE_ANGELRING ∧ ¬_PART_HAIR / _USE_SSS ∧ ¬_PART_SKIN.
+    ///  - (TODO) 출하 material preset 조합이 확정되면 추가 allowlist(MatCap/Eye/Emission 등)로 더 줄인다.
     ///    (LOBBY_HQ 품질-티어 키워드는 결정 #15로 제거됨 — 단일 고품질)
     ///
     /// 빌드 전 변형 수 확인은 URP 설정(Graphics > URP Global Settings 의 Shader Stripping)과
@@ -32,12 +32,31 @@ namespace CharacterToon.Editor
                 return;
 
             // 로컬 키워드는 셰이더 스코프로 조회해야 정확.
-            var debugFaceLit = new ShaderKeyword(shader, "_DEBUG_FACELIT");
+            var kDebug      = new ShaderKeyword(shader, "_DEBUG_FACELIT");
+            var kPartFace   = new ShaderKeyword(shader, "_PART_FACE");
+            var kPartHair   = new ShaderKeyword(shader, "_PART_HAIR");
+            var kPartSkin   = new ShaderKeyword(shader, "_PART_SKIN");
+            var kHairShadow = new ShaderKeyword(shader, "_USE_HAIR_SHADOW");
+            var kAngelRing  = new ShaderKeyword(shader, "_USE_ANGELRING");
+            var kSSS        = new ShaderKeyword(shader, "_USE_SSS");
 
             int removed = 0;
             for (int i = data.Count - 1; i >= 0; i--)
             {
-                if (data[i].shaderKeywordSet.IsEnabled(debugFaceLit))
+                var ks = data[i].shaderKeywordSet;
+
+                // (1) 에디터 진단 전용 — 플레이어 빌드 항상 제거.
+                bool strip = ks.IsEnabled(kDebug);
+
+                // (2) 불가능/잉여 조합 — 셰이더 #if 가드로 이미 dead 코드인 변형.
+                //   _USE_HAIR_SHADOW 는 _PART_FACE 안, _USE_ANGELRING 는 _PART_HAIR 안, _USE_SSS 는 _PART_SKIN 안에서만 동작.
+                //   파트 불일치 변형은 기능이 컴파일 제거된 상태라, 빌드에서 빼도 런타임 fallback(기능 OFF 변형)이
+                //   '동일 픽셀'을 내므로 마젠타/룩 변화 없이 안전하게 변형 수만 줄인다.
+                if (!strip && ks.IsEnabled(kHairShadow) && !ks.IsEnabled(kPartFace)) strip = true;
+                if (!strip && ks.IsEnabled(kAngelRing)  && !ks.IsEnabled(kPartHair)) strip = true;
+                if (!strip && ks.IsEnabled(kSSS)        && !ks.IsEnabled(kPartSkin)) strip = true;
+
+                if (strip)
                 {
                     data.RemoveAt(i);
                     removed++;
@@ -47,7 +66,7 @@ namespace CharacterToon.Editor
             if (removed > 0)
             {
                 Debug.Log($"[CharacterToonShaderStripper] '{shader.name}' pass '{snippet.passName}' " +
-                          $"({snippet.shaderType}): _DEBUG_FACELIT 변형 {removed}개 제거.");
+                          $"({snippet.shaderType}): 변형 {removed}개 제거(디버그 + 파트 불일치 조합).");
             }
         }
     }

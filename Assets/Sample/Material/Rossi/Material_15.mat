@@ -26,6 +26,7 @@ Material:
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
   - _PART_FACE
+  - _USE_ADD_LIGHTS
   - _USE_ANGELRING
   - _USE_OUTLINE
   - _USE_RIM
@@ -42,6 +43,10 @@ Material:
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
+    - _AngelRingMask:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _BaseMap:
         m_Texture: {fileID: 2800000, guid: 40af8dbc397346948b222d3694529d58, type: 3}
         m_Scale: {x: 1, y: 1}
@@ -152,10 +157,13 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
+    - _AOStrength: 1
     - _AddPrecomputedVelocity: 0
+    - _AdditionalLightStrength: 1
     - _AlphaClip: 0
     - _AlphaToMask: 0
     - _AmbientStrength: 0
+    - _AngelRingAngle: 0
     - _AngelRingIntensity: 1
     - _AngelRingPower: 20
     - _Blend: 0
@@ -182,6 +190,7 @@ Material:
     - _HairShadowStrength: 0
     - _MatCap2Blend: 0
     - _MatCap2Strength: 1
+    - _MatCapNormalStrength: 1
     - _MatCapStrength: 1
     - _Metallic: 0
     - _OcclusionStrength: 1
@@ -225,6 +234,7 @@ Material:
     - _StencilPass: 0
     - _StencilRef: 0
     - _Surface: 0
+    - _UseAddLights: 1
     - _UseAngelRing: 1
     - _UseDepthRim: 0
     - _UseEmission: 0

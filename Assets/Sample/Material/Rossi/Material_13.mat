@@ -25,7 +25,8 @@ Material:
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
-  - _PART_FACE
+  - _PART_NONE
+  - _USE_ADD_LIGHTS
   - _USE_ANGELRING
   - _USE_OUTLINE
   - _USE_RIM
@@ -47,7 +48,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _BaseMap:
-        m_Texture: {fileID: 2800000, guid: 1f050140985f7ba46b988fe5a011d33a, type: 3}
+        m_Texture: {fileID: 2800000, guid: 639bea22b083ad249ac4d42a940ef650, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _BumpMap:
@@ -198,7 +199,7 @@ Material:
     - _OutlineFadeStart: 5
     - _OutlineWidth: 0.2
     - _Parallax: 0.005
-    - _Part: 1
+    - _Part: 0
     - _QualityFadeEnd: 40
     - _QualityFadeStart: 15
     - _QueueOffset: 0

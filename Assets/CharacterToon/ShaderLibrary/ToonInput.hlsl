@@ -64,6 +64,7 @@ CBUFFER_START(UnityPerMaterial)
     half   _ShadowStrength;
     half   _ReceiveShadowStrength;
     half   _ShadowMaskType;   // 2-1: 0=SDF(얼굴 플립샘플) / 1=Strength(half-Lambert 일반 음영). float 분기(키워드 아님 — 변형 절감)
+    half   _UseShadowMask;    // 그림자 억제 마스크 사용. float 분기(키워드 아님 — 변형 절감). off면 _ShadowMaskTex 페치 스킵.
     half   _UseRamp;          // [Toggle(_USE_RAMP)] backing float, batcher 유지 위해 CBUFFER 포함
 
     // 림

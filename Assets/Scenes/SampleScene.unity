@@ -348,13 +348,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 410087039}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.23846123, y: 0.78849155, z: -0.11399787, w: 0.55535746}
+  m_LocalRotation: {x: -0.08974173, y: 0.8778784, z: -0.36535716, w: -0.29629406}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 26.4, y: -606.5, z: 16.169}
+  m_LocalEulerAnglesHint: {x: 404, y: -860.8, z: 4.7}
 --- !u!114 &410087042
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -398,10 +398,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: CharacterToon.Runtime::CharacterToon.CharacterToonLight
   _keyLight: {fileID: 410087040}
   _useTransformAsDirection: 0
-  _priority: 0
+  _priority: 1
   _overrideColor: 0
   _color: {r: 1, g: 1, b: 1, a: 1}
-  _intensity: 1
+  _intensity: 0.14
 --- !u!1 &492298014
 GameObject:
   m_ObjectHideFlags: 0
@@ -645,7 +645,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &824036083
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -660,10 +660,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: CharacterToon.Runtime::CharacterToon.CharacterToonLight
   _keyLight: {fileID: 824036085}
   _useTransformAsDirection: 0
-  _priority: 0
-  _overrideColor: 0
-  _color: {r: 1, g: 1, b: 1, a: 1}
-  _intensity: 1
+  _priority: 2
+  _overrideColor: 1
+  _color: {r: 0.7490196, g: 0.7490196, b: 0.7490196, a: 1}
+  _intensity: 0.43
 --- !u!114 &824036084
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -767,7 +767,7 @@ Transform:
   m_GameObject: {fileID: 824036082}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.007, y: 1.464, z: 0.848}
+  m_LocalPosition: {x: 0.768, y: 1.396, z: 0.12}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -6167,7 +6167,7 @@ SkinnedMeshRenderer:
   m_Quality: 0
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: 819920800416652583, guid: f4b7c9f208fdda342835483d5b7bce83, type: 3}
+  m_Mesh: {fileID: 4300000, guid: 378438bacd005d84ca659e3354a1e6bf, type: 2}
   m_Bones:
   - {fileID: 2626663829079312407}
   - {fileID: 131507824026430306}

@@ -10,13 +10,32 @@ namespace CharacterToon.Editor
 {
     public static class CompileCheck
     {
+        // 열린 에디터에서 SceneToon(배경) + 공유 라이브러리 + CharacterToon 셰이더 오류를 Console 로 검증.
+        //   배치 컴파일이 에디터 락과 충돌할 때 사용. 결과는 Console + compilecheck_result.txt.
+        [MenuItem("Tools/Toon/Validate Shaders (Scene + Character)")]
+        public static void ValidateMenu()
+        {
+            RunInternal(new[] { "Assets/SceneToon", "Assets/ToonShared", "Assets/CharacterToon" }, exitOnDone: false);
+        }
+
         public static void Run()
+        {
+            RunInternal(new[] { "Assets/CharacterToon" }, exitOnDone: true);
+        }
+
+        // 헤드리스 배치: SceneToon(배경) + 공유 라이브러리 + CharacterToon 전부 검증 후 종료.
+        public static void RunAll()
+        {
+            RunInternal(new[] { "Assets/SceneToon", "Assets/ToonShared", "Assets/CharacterToon" }, exitOnDone: true);
+        }
+
+        private static void RunInternal(string[] roots, bool exitOnDone)
         {
             var sb = new StringBuilder();
             int errorCount = 0;
 
             // 1) Shader compile messages (variants force-compiled per material below)
-            string[] shaderGuids = AssetDatabase.FindAssets("t:Shader", new[] { "Assets/CharacterToon" });
+            string[] shaderGuids = AssetDatabase.FindAssets("t:Shader", roots);
             foreach (var g in shaderGuids)
             {
                 string path = AssetDatabase.GUIDToAssetPath(g);
@@ -45,12 +64,13 @@ namespace CharacterToon.Editor
                 sb.AppendLine($"[MAT] {Path.GetFileName(path)}  shader='{mat.shader.name}'  keywords=[{keywords}]");
             }
 
-            sb.Insert(0, $"=== CharacterToon CompileCheck === errors={errorCount}\n");
+            sb.Insert(0, $"=== Toon CompileCheck === roots=[{string.Join(",", roots)}] errors={errorCount}\n");
             string outPath = Path.Combine(Directory.GetCurrentDirectory(), "compilecheck_result.txt");
             File.WriteAllText(outPath, sb.ToString());
             Debug.Log(sb.ToString());
 
-            EditorApplication.Exit(errorCount > 0 ? 1 : 0);
+            if (exitOnDone)
+                EditorApplication.Exit(errorCount > 0 ? 1 : 0);
         }
     }
 }
